@@ -172,10 +172,16 @@ export function activate(context: vscode.ExtensionContext) {
                 addedNames.push(fileName);
             }
 
+            // Detect context for better user feedback
+            const isActiveEditorFile = !uri && !uris && urisToAdd.length === 1 && 
+                vscode.window.activeTextEditor && 
+                urisToAdd[0].toString() === vscode.window.activeTextEditor.document.uri.toString();
+
             // Show appropriate message based on results
             if (addedCount > 0 && duplicateCount === 0) {
                 if (addedCount === 1) {
-                    vscode.window.showInformationMessage(`Added "${addedNames[0]}" to Focus Space.`);
+                    const contextMessage = isActiveEditorFile ? " (current file)" : "";
+                    vscode.window.showInformationMessage(`Added "${addedNames[0]}"${contextMessage} to Focus Space.`);
                 } else {
                     vscode.window.showInformationMessage(`Added ${addedCount} items to Focus Space.`);
                 }
@@ -184,7 +190,8 @@ export function activate(context: vscode.ExtensionContext) {
             } else if (duplicateCount > 0) {
                 if (duplicateCount === 1) {
                     const fileName = urisToAdd[0].fsPath.split('/').pop() || urisToAdd[0].fsPath;
-                    vscode.window.showInformationMessage(`"${fileName}" is already in Focus Space.`);
+                    const contextMessage = isActiveEditorFile ? " (current file)" : "";
+                    vscode.window.showInformationMessage(`"${fileName}"${contextMessage} is already in Focus Space.`);
                 } else {
                     vscode.window.showInformationMessage(`All ${duplicateCount} selected items are already in Focus Space.`);
                 }

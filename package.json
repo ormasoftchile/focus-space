@@ -80,6 +80,13 @@
           "group": "1_modification"
         }
       ],
+      "editor/title": [
+        {
+          "command": "focusSpace.addToFocusSpace",
+          "when": "resourceScheme == file",
+          "group": "navigation"
+        }
+      ],
       "view/title": [
         {
           "command": "focusSpace.createSection",
@@ -95,6 +102,19 @@
         }
       ]
     },
+    "keybindings": [
+      {
+        "command": "focusSpace.addToFocusSpace",
+        "key": "ctrl+shift+f",
+        "mac": "cmd+shift+f",
+        "when": "editorFocus"
+      },
+      {
+        "command": "focusSpace.addFilesToFocusSpace",
+        "key": "ctrl+shift+alt+f",
+        "mac": "cmd+shift+alt+f"
+      }
+    ],
     "configuration": {
       "title": "Focus Space",
       "properties": {
