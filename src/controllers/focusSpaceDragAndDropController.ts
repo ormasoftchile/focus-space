@@ -19,8 +19,14 @@ export interface DropTargetInfo {
 export class FocusSpaceDragAndDropController implements vscode.TreeDragAndDropController<FocusEntry> {
 	
 	// MIME types for drag and drop operations
-	readonly dragMimeTypes = ['application/vnd.code.tree.focusspace'];
-	readonly dropMimeTypes = ['application/vnd.code.tree.focusspace'];
+	readonly dragMimeTypes = [
+		'application/vnd.code.tree.focusspace',
+		'text/uri-list'  // Support dragging to external targets (Copilot Chat, etc.)
+	];
+	readonly dropMimeTypes = [
+		'application/vnd.code.tree.focusspace',
+		'text/uri-list'  // Accept drops from Explorer and external sources
+	];
 
 	constructor(private focusSpaceManager: FocusSpaceManager) {}
 
@@ -31,7 +37,7 @@ export class FocusSpaceDragAndDropController implements vscode.TreeDragAndDropCo
 		source: readonly FocusEntry[], 
 		dataTransfer: vscode.DataTransfer
 	): Promise<void> {
-		// Serialize the dragged items
+		// Serialize the dragged items for internal operations
 		const dragData = source.map(item => ({
 			id: item.id,
 			uri: item.uri.toString(),
@@ -39,10 +45,25 @@ export class FocusSpaceDragAndDropController implements vscode.TreeDragAndDropCo
 			type: item.type
 		}));
 
+		// Set internal MIME type for Focus Space operations
 		dataTransfer.set(
 			'application/vnd.code.tree.focusspace',
 			new vscode.DataTransferItem(JSON.stringify(dragData))
 		);
+
+		// Set text/uri-list for external targets (Copilot Chat, etc.)
+		// Only include file and folder entries (exclude sections)
+		const uriList = source
+			.filter(item => item.type === 'file' || item.type === 'folder')
+			.map(item => item.uri.toString())
+			.join('\n');
+		
+		if (uriList) {
+			dataTransfer.set(
+				'text/uri-list',
+				new vscode.DataTransferItem(uriList)
+			);
+		}
 	}
 
 	/**
@@ -57,11 +78,28 @@ export class FocusSpaceDragAndDropController implements vscode.TreeDragAndDropCo
 			return;
 		}
 
-		const transferItem = dataTransfer.get('application/vnd.code.tree.focusspace');
-		if (!transferItem) {
+		// Try internal Focus Space data first
+		const internalTransfer = dataTransfer.get('application/vnd.code.tree.focusspace');
+		if (internalTransfer) {
+			await this.handleInternalDrop(internalTransfer, target);
 			return;
 		}
 
+		// Handle external drops (from Explorer, etc.)
+		const externalTransfer = dataTransfer.get('text/uri-list');
+		if (externalTransfer) {
+			await this.handleExternalDrop(externalTransfer, target);
+			return;
+		}
+	}
+
+	/**
+	 * Handle internal Focus Space drops (reorder/move operations)
+	 */
+	private async handleInternalDrop(
+		transferItem: vscode.DataTransferItem,
+		target: FocusEntry | undefined
+	): Promise<void> {
 		try {
 			const dragData = JSON.parse(transferItem.value as string);
 			const sourceItems: FocusEntry[] = dragData.map((data: any) => ({
@@ -76,7 +114,109 @@ export class FocusSpaceDragAndDropController implements vscode.TreeDragAndDropCo
 			}
 
 		} catch (error) {
-			vscode.window.showErrorMessage(`Failed to process drop operation: ${error}`);
+			vscode.window.showErrorMessage(`Failed to process internal drop: ${error}`);
+		}
+	}
+
+	/**
+	 * Handle external drops (from Explorer, other extensions, etc.)
+	 */
+	private async handleExternalDrop(
+		transferItem: vscode.DataTransferItem,
+		target: FocusEntry | undefined
+	): Promise<void> {
+		try {
+			const uriListText = transferItem.value as string;
+			const uris = uriListText
+				.split('\n')
+				.map(line => line.trim())
+				.filter(line => line.length > 0)
+				.map(uri => vscode.Uri.parse(uri));
+
+			let addedCount = 0;
+			const targetSectionId = target?.type === 'section' ? target.id : undefined;
+
+			for (const uri of uris) {
+				try {
+					// Check if file/folder exists and get its type
+					const stat = await vscode.workspace.fs.stat(uri);
+					const isDirectory = (stat.type & vscode.FileType.Directory) !== 0;
+
+					// Check for duplicates using the manager's hasEntry method
+					if (this.focusSpaceManager.hasEntry(uri)) {
+						const choice = await this.showExternalDropConflictDialog(uri);
+						if (choice === 'skip') {
+							continue;
+						}
+						if (choice === 'replace') {
+							// Find and remove the existing entry
+							// We need to get all entries to find the one to remove
+							const allTopLevel = this.focusSpaceManager.getTopLevelEntries();
+							const existingEntry = TreeOperations.findByUri(allTopLevel, uri);
+							if (existingEntry) {
+								this.focusSpaceManager.removeEntry(existingEntry.id);
+							}
+						}
+						// 'add' means proceed with adding (keep both)
+					}
+
+					// Add the entry to Focus Space
+					const entryType = isDirectory ? 'folder' : 'file';
+					if (targetSectionId) {
+						await this.focusSpaceManager.addEntry(uri, entryType, targetSectionId);
+					} else {
+						await this.focusSpaceManager.addEntry(uri, entryType);
+					}
+					addedCount++;
+
+				} catch (error) {
+					console.warn(`Failed to add ${uri.toString()} to Focus Space:`, error);
+					// Continue with other files rather than failing the entire operation
+				}
+			}
+
+			// Show success message
+			if (addedCount > 0) {
+				const targetDescription = targetSectionId 
+					? ` to section "${target?.label}"` 
+					: '';
+				const itemText = addedCount === 1 ? 'item' : 'items';
+				vscode.window.showInformationMessage(
+					`Added ${addedCount} ${itemText} to Focus Space${targetDescription}`
+				);
+			}
+
+		} catch (error) {
+			vscode.window.showErrorMessage(`Failed to process external drop: ${error}`);
+		}
+	}
+
+	/**
+	 * Show conflict dialog for external drops
+	 */
+	private async showExternalDropConflictDialog(
+		uri: vscode.Uri
+	): Promise<'skip' | 'replace' | 'add'> {
+		const fileName = path.basename(uri.fsPath);
+		const message = `"${fileName}" already exists in Focus Space. What would you like to do?`;
+		
+		const choice = await vscode.window.showWarningMessage(
+			message,
+			{ modal: true },
+			'Skip',
+			'Replace Existing',
+			'Add Anyway'
+		);
+
+		switch (choice) {
+			case 'Skip':
+				return 'skip';
+			case 'Replace Existing':
+				return 'replace';
+			case 'Add Anyway':
+				return 'add';
+			default:
+				return 'skip'; // Default to skip if dialog is cancelled
 		}
 	}
 

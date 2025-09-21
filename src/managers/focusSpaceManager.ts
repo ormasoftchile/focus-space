@@ -320,7 +320,8 @@ export class FocusSpaceManager {
         };
 
         this.rootEntries.push(section);
-        await this.persist();
+        this.markDirtyAndScheduleSave();
+        this._onDidChange.fire();
         return section;
     }
 

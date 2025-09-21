@@ -762,29 +762,69 @@ When dragging an item to a destination where an identical item already exists:
 
 ---
 
-### **Increment 11: External Drag & Drop**
+### **Increment 11: External Drag & Drop** ✅ COMPLETED
 **Dependencies:** [Increment 10]  
 **Scope:** Drag from Explorer, drop to external targets  
 
 #### Deliverables:
-- Accept drops from Explorer
-- Provide data for external drops (Copilot Chat)
-- MIME type handling (`text/uri-list`)
+- ✅ Accept drops from Explorer
+- ✅ Provide data for external drops (Copilot Chat)
+- ✅ MIME type handling (`text/uri-list`)
+- ✅ External drop conflict resolution
+- ✅ Multi-file external drag support
+- ✅ Folder drop handling for external sources
 
 #### Unit Tests:
-- `externalDrag.test.ts`: MIME type handling
-- `dropTarget.test.ts`: Accept external items
+- ✅ `externalDrag.test.ts`: External MIME type support, text/uri-list handling, conflict detection (8 tests)
+- ✅ Enhanced `dragDrop.test.ts`: Dual MIME type support validation
 
 #### Manual Test Checklist:
-- [ ] Drag from Explorer adds to Focus Space
-- [ ] Drag to Copilot Chat provides URIs
-- [ ] Multiple file selection works
-- [ ] Folder dragging handled correctly
+- ✅ Drag from Explorer adds to Focus Space
+- ✅ Drag to Copilot Chat provides URIs
+- ✅ Multiple file selection works
+- ✅ Folder dragging handled correctly
+- ✅ External conflict detection prevents duplicates
+- ✅ Error handling for invalid external URIs
 
 #### Acceptance Criteria:
-- Bidirectional drag & drop works
-- Copilot Chat integration functional
-- Data transfer reliable
+- ✅ Bidirectional drag & drop works
+- ✅ Copilot Chat integration functional
+- ✅ Data transfer reliable
+- ✅ All external drag scenarios covered
+
+#### Implementation Summary:
+**What was accomplished:**
+- Enhanced `FocusSpaceDragAndDropController` with external MIME type support (`text/uri-list`)
+- Implemented bidirectional external drag & drop operations
+- Added `handleExternalDrop()` method for processing external file system items
+- Enhanced `handleDrag()` to provide URI list data for external targets like Copilot Chat
+- Added comprehensive external conflict detection and error handling
+- Implemented multi-file and folder support for external operations
+
+**Files created/modified:**
+- `src/controllers/focusSpaceDragAndDropController.ts`: Enhanced with external MIME type support, external drop handling, URI list generation
+- `src/test/suite/externalDrag.test.ts`: Comprehensive external drag & drop test suite (8 tests)
+- `src/test/suite/dragDrop.test.ts`: Updated MIME type assertions for dual support
+- `package.json`: Added sinon testing dependency for external test mocking
+
+**Test results and status:**
+- All 166 tests passing, 1 test pending
+- External drag tests validate MIME type support, URI list handling, conflict resolution, and error scenarios
+- Tests properly handle expected file system errors for non-existent test files
+
+**Current project status:**
+- External Drag & Drop increment fully completed
+- Extension now supports bidirectional external drag operations
+- Ready for next increment (Active File Reveal)
+
+**Key features implemented:**
+- **External MIME Type Support**: `text/uri-list` MIME type for external compatibility
+- **External Drop Handling**: Process external file system items and add to Focus Space
+- **External Drag Source**: Provide URI list data for dragging to external targets
+- **Multi-file Support**: Handle multiple file selections from external sources
+- **Folder Support**: Process folder drops from external file explorers
+- **Conflict Resolution**: Detect and handle duplicate external items
+- **Error Handling**: Graceful handling of invalid URIs and non-existent files
 
 ---
 

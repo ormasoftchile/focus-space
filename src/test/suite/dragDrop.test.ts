@@ -52,10 +52,14 @@ suite('FocusSpaceDragAndDropController Test Suite', () => {
     });
 
     test('should have correct MIME types', () => {
-        assert.strictEqual(controller.dragMimeTypes.length, 1);
-        assert.strictEqual(controller.dragMimeTypes[0], 'application/vnd.code.tree.focusspace');
-        assert.strictEqual(controller.dropMimeTypes.length, 1);
-        assert.strictEqual(controller.dropMimeTypes[0], 'application/vnd.code.tree.focusspace');
+        // Should support both internal and external MIME types
+        assert.strictEqual(controller.dragMimeTypes.length, 2);
+        assert.ok(controller.dragMimeTypes.includes('application/vnd.code.tree.focusspace'), 'Should include internal MIME type');
+        assert.ok(controller.dragMimeTypes.includes('text/uri-list'), 'Should include external MIME type');
+        
+        assert.strictEqual(controller.dropMimeTypes.length, 2);
+        assert.ok(controller.dropMimeTypes.includes('application/vnd.code.tree.focusspace'), 'Should include internal MIME type');
+        assert.ok(controller.dropMimeTypes.includes('text/uri-list'), 'Should include external MIME type');
     });
 
     test('should handle drag operation', async () => {
