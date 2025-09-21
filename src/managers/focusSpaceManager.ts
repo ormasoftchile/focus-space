@@ -1,16 +1,40 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { FocusEntry, SerializableFocusEntry, FocusSpaceConfig, FocusEntryMetadata } from '../models/focusEntry';
+import { FocusEntry, SerializableFocusEntry, FocusSpaceConfig } from '../models/focusEntry';
+import { TreeOperations } from '../utils/treeOperations';
 
 /**
- * Singleton manager for Focus Space state and persistence
+ * Singleton manager for Focus Space
+ * 
+ * This class manages the complete lifecycle of Focus Space entries including:
+ * - CRUD operations for files, folders, and sections
+ * - Hierarchical tree structure management
+ * - Persistent storage with debounced saves
+ * - Change event notifications for UI updates
+ * - Performance optimizations for large trees
+ * 
+ * Architecture:
+ * - Pure hierarchical structure without temp IDs
+ * - Real entries only - every displayed item has persistent state
+ * - Automatic cache management through TreeOperations
+ * - Debounced persistence to minimize disk I/O
+ * - Extension lifecycle integration for data safety
+ * 
+ * Performance Features:
+ * - Incremental serialization (only saves when dirty)
+ * - Debounced saves to prevent excessive disk writes
+ * - Cached tree operations for fast lookups
+ * - Batch mode support for multiple operations
  */
 export class FocusSpaceManager {
     private static instance: FocusSpaceManager;
-    private entries: Map<string, FocusEntry> = new Map();
+    private rootEntries: FocusEntry[] = [];
     private context: vscode.ExtensionContext;
     private storageUri: vscode.Uri | undefined;
     private readonly CONFIG_VERSION = '1.0.0';
+    private isDirty: boolean = false;
+    private saveTimeout: NodeJS.Timeout | undefined;
+    private readonly SAVE_DELAY = 500; // ms - debounce saves
     
     // Event emitter for tree data changes
     private _onDidChange: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
@@ -45,6 +69,32 @@ export class FocusSpaceManager {
     }
 
     /**
+     * Force immediate save if dirty
+     */
+    public async saveNow(): Promise<void> {
+        if (this.isDirty) {
+            await this.persist();
+        }
+    }
+
+    /**
+     * Mark state as dirty and schedule a save
+     */
+    private markDirtyAndScheduleSave(): void {
+        this.isDirty = true;
+        
+        // Clear existing timeout
+        if (this.saveTimeout) {
+            clearTimeout(this.saveTimeout);
+        }
+        
+        // Schedule a debounced save
+        this.saveTimeout = setTimeout(() => {
+            this.persist();
+        }, this.SAVE_DELAY);
+    }
+
+    /**
      * Add a new entry to the focus space
      */
     public async addEntry(uri: vscode.Uri, type: 'file' | 'folder' | 'section', parentId?: string, label?: string): Promise<FocusEntry> {
@@ -56,26 +106,131 @@ export class FocusSpaceManager {
             uri,
             type,
             label,
-            children: type === 'section' ? [] : undefined,
+            children: type === 'section' || type === 'folder' ? [] : undefined,
             metadata: {
                 dateAdded: Date.now(),
                 relativePath,
-                order: this.entries.size
+                order: TreeOperations.count(this.rootEntries)
             }
         };
 
-        this.entries.set(id, entry);
-
-        // If parentId is specified, add to parent's children
-        if (parentId && type !== 'section') {
-            const parent = this.entries.get(parentId);
-            if (parent && parent.type === 'section') {
-                parent.children = parent.children || [];
-                parent.children.push(entry);
+        // For folders, eagerly load all contents
+        if (type === 'folder') {
+            try {
+                const folderContents = await vscode.workspace.fs.readDirectory(uri);
+                
+                // Sort folder contents: directories first, then files, both alphabetically
+                const sortedContents = folderContents.sort((a, b) => {
+                    const [nameA, typeA] = a;
+                    const [nameB, typeB] = b;
+                    
+                    // Directories first
+                    const isDirA = (typeA & vscode.FileType.Directory) !== 0;
+                    const isDirB = (typeB & vscode.FileType.Directory) !== 0;
+                    
+                    if (isDirA && !isDirB) return -1;
+                    if (!isDirA && isDirB) return 1;
+                    
+                    // Then alphabetically within each type
+                    return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+                });
+                
+                const children: FocusEntry[] = [];
+                
+                for (const [name, fileType] of sortedContents) {
+                    const childUri = vscode.Uri.joinPath(uri, name);
+                    const childType = (fileType & vscode.FileType.Directory) ? 'folder' : 'file';
+                    
+                    // Create child entry directly without adding to root
+                    const childEntry: FocusEntry = {
+                        id: this.generateId(),
+                        uri: childUri,
+                        type: childType,
+                        label: path.basename(childUri.fsPath),
+                        children: childType === 'folder' ? [] : undefined,
+                        metadata: {
+                            dateAdded: Date.now(),
+                            relativePath: this.getRelativePath(childUri),
+                            order: children.length
+                        }
+                    };
+                    
+                    // For nested folders, recursively load their contents too
+                    if (childType === 'folder') {
+                        try {
+                            const nestedContents = await vscode.workspace.fs.readDirectory(childUri);
+                            
+                            // Sort nested contents: directories first, then files, both alphabetically
+                            const sortedNestedContents = nestedContents.sort((a, b) => {
+                                const [nameA, typeA] = a;
+                                const [nameB, typeB] = b;
+                                
+                                // Directories first
+                                const isDirA = (typeA & vscode.FileType.Directory) !== 0;
+                                const isDirB = (typeB & vscode.FileType.Directory) !== 0;
+                                
+                                if (isDirA && !isDirB) return -1;
+                                if (!isDirA && isDirB) return 1;
+                                
+                                // Then alphabetically within each type
+                                return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+                            });
+                            
+                            const nestedChildren: FocusEntry[] = [];
+                            
+                            for (const [nestedName, nestedFileType] of sortedNestedContents) {
+                                const nestedChildUri = vscode.Uri.joinPath(childUri, nestedName);
+                                const nestedChildType = (nestedFileType & vscode.FileType.Directory) ? 'folder' : 'file';
+                                
+                                const nestedChildEntry: FocusEntry = {
+                                    id: this.generateId(),
+                                    uri: nestedChildUri,
+                                    type: nestedChildType,
+                                    label: path.basename(nestedChildUri.fsPath),
+                                    children: nestedChildType === 'folder' ? [] : undefined,
+                                    metadata: {
+                                        dateAdded: Date.now(),
+                                        relativePath: this.getRelativePath(nestedChildUri),
+                                        order: nestedChildren.length
+                                    }
+                                };
+                                
+                                nestedChildren.push(nestedChildEntry);
+                            }
+                            
+                            childEntry.children = nestedChildren;
+                        } catch (nestedError) {
+                            console.error('Error reading nested folder contents:', nestedError);
+                            childEntry.children = [];
+                        }
+                    }
+                    
+                    children.push(childEntry);
+                }
+                
+                entry.children = children;
+            } catch (error) {
+                console.error('Error reading folder contents during eager loading:', error);
+                entry.children = []; // Empty array on error
             }
         }
 
-        await this.persist();
+        if (parentId) {
+            // Add to specific parent
+            const parent = TreeOperations.findById(this.rootEntries, parentId);
+            if (parent && (parent.type === 'section' || parent.type === 'folder')) {
+                parent.children = parent.children || [];
+                parent.children.push(entry);
+            } else {
+                // Parent not found or not a valid container, add to root
+                this.rootEntries.push(entry);
+            }
+        } else {
+            // Add to root level
+            this.rootEntries.push(entry);
+        }
+
+        this.markDirtyAndScheduleSave();
         this._onDidChange.fire();
         return entry;
     }
@@ -84,34 +239,22 @@ export class FocusSpaceManager {
      * Remove an entry from the focus space
      */
     public async removeEntry(id: string): Promise<boolean> {
-        const entry = this.entries.get(id);
-        if (!entry) {
-            return false;
+        // Use TreeOperations for consistent removal
+        const removed = TreeOperations.removeById(this.rootEntries, id);
+        
+        if (removed) {
+            this.markDirtyAndScheduleSave();
+            this._onDidChange.fire();
         }
-
-        // Remove from parent's children if it's a child
-        for (const [_, parentEntry] of this.entries) {
-            if (parentEntry.children) {
-                const index = parentEntry.children.findIndex(child => child.id === id);
-                if (index !== -1) {
-                    parentEntry.children.splice(index, 1);
-                    break;
-                }
-            }
-        }
-
-        // Remove the entry itself
-        this.entries.delete(id);
-        await this.persist();
-        this._onDidChange.fire();
-        return true;
+        
+        return removed;
     }
 
     /**
      * Get an entry by ID
      */
     public getEntry(id: string): FocusEntry | undefined {
-        return this.entries.get(id);
+        return TreeOperations.findById(this.rootEntries, id);
     }
 
     /**
@@ -119,14 +262,12 @@ export class FocusSpaceManager {
      */
     public getEntries(parentId?: string): FocusEntry[] {
         if (parentId) {
-            const parent = this.entries.get(parentId);
+            const parent = TreeOperations.findById(this.rootEntries, parentId);
             return parent?.children || [];
         }
 
-        // Return top-level entries (not in any section)
-        return Array.from(this.entries.values()).filter(entry => 
-            !this.isChildOfSection(entry)
-        );
+        // Return top-level entries
+        return TreeOperations.getTopLevelEntries(this.rootEntries);
     }
 
     /**
@@ -140,17 +281,15 @@ export class FocusSpaceManager {
      * Check if an entry exists for a given URI
      */
     public hasEntry(uri: vscode.Uri): boolean {
-        return Array.from(this.entries.values()).some(entry => 
-            entry.uri.toString() === uri.toString()
-        );
+        return TreeOperations.findByUri(this.rootEntries, uri) !== undefined;
     }
 
     /**
      * Clear all entries
      */
     public async clearAll(): Promise<void> {
-        this.entries.clear();
-        await this.persist();
+        this.rootEntries = [];
+        this.markDirtyAndScheduleSave();
         this._onDidChange.fire();
     }
 
@@ -168,11 +307,11 @@ export class FocusSpaceManager {
             children: [],
             metadata: {
                 dateAdded: Date.now(),
-                order: this.entries.size
+                order: TreeOperations.count(this.rootEntries)
             }
         };
 
-        this.entries.set(id, section);
+        this.rootEntries.push(section);
         await this.persist();
         return section;
     }
@@ -181,33 +320,13 @@ export class FocusSpaceManager {
      * Move an entry to a different section
      */
     public async moveToSection(entryId: string, sectionId?: string): Promise<boolean> {
-        const entry = this.entries.get(entryId);
-        if (!entry || entry.type === 'section') {
-            return false;
+        const moved = TreeOperations.moveEntry(this.rootEntries, entryId, sectionId);
+        
+        if (moved) {
+            this.markDirtyAndScheduleSave();
         }
-
-        // Remove from current parent
-        for (const [_, parentEntry] of this.entries) {
-            if (parentEntry.children) {
-                const index = parentEntry.children.findIndex(child => child.id === entryId);
-                if (index !== -1) {
-                    parentEntry.children.splice(index, 1);
-                    break;
-                }
-            }
-        }
-
-        // Add to new section if specified
-        if (sectionId) {
-            const section = this.entries.get(sectionId);
-            if (section && section.type === 'section') {
-                section.children = section.children || [];
-                section.children.push(entry);
-            }
-        }
-
-        await this.persist();
-        return true;
+        
+        return moved;
     }
 
     /**
@@ -223,11 +342,14 @@ export class FocusSpaceManager {
             const text = Buffer.from(content).toString('utf8');
             const config: FocusSpaceConfig = JSON.parse(text);
 
-            this.entries.clear();
-            this.deserializeEntries(config.entries);
+            this.rootEntries = TreeOperations.fromSerializable(config.entries);
+            
+            // Build cache for better performance with loaded data
+            TreeOperations.buildCache(this.rootEntries);
         } catch (error) {
             // File doesn't exist or is corrupt - start fresh
             console.log('Focus Space: Starting with empty state');
+            TreeOperations.clearCache();
         }
     }
 
@@ -235,11 +357,17 @@ export class FocusSpaceManager {
      * Persist current state to storage
      */
     private async persist(): Promise<void> {
-        if (!this.storageUri) {
+        if (!this.storageUri || !this.isDirty) {
             return;
         }
 
         try {
+            // Clear timeout if called directly
+            if (this.saveTimeout) {
+                clearTimeout(this.saveTimeout);
+                this.saveTimeout = undefined;
+            }
+
             // Ensure .vscode directory exists
             const vscodeDirUri = vscode.Uri.joinPath(this.storageUri, '..');
             await vscode.workspace.fs.createDirectory(vscodeDirUri);
@@ -252,6 +380,9 @@ export class FocusSpaceManager {
 
             const content = JSON.stringify(config, null, 2);
             await vscode.workspace.fs.writeFile(this.storageUri, Buffer.from(content, 'utf8'));
+            
+            // Mark as clean after successful save
+            this.isDirty = false;
         } catch (error) {
             vscode.window.showErrorMessage(`Failed to save Focus Space: ${error}`);
         }
@@ -261,51 +392,7 @@ export class FocusSpaceManager {
      * Serialize entries for JSON storage
      */
     private serializeEntries(): SerializableFocusEntry[] {
-        const topLevelEntries = this.getEntries();
-        return topLevelEntries.map(entry => this.serializeEntry(entry));
-    }
-
-    /**
-     * Serialize a single entry
-     */
-    private serializeEntry(entry: FocusEntry): SerializableFocusEntry {
-        return {
-            id: entry.id,
-            uriString: entry.uri.toString(),
-            type: entry.type,
-            label: entry.label,
-            children: entry.children?.map(child => this.serializeEntry(child)),
-            metadata: entry.metadata
-        };
-    }
-
-    /**
-     * Deserialize entries from JSON storage
-     */
-    private deserializeEntries(serializedEntries: SerializableFocusEntry[]): void {
-        for (const serialized of serializedEntries) {
-            this.deserializeEntry(serialized);
-        }
-    }
-
-    /**
-     * Deserialize a single entry
-     */
-    private deserializeEntry(serialized: SerializableFocusEntry): FocusEntry {
-        const entry: FocusEntry = {
-            id: serialized.id,
-            uri: vscode.Uri.parse(serialized.uriString),
-            type: serialized.type,
-            label: serialized.label,
-            metadata: serialized.metadata
-        };
-
-        if (serialized.children) {
-            entry.children = serialized.children.map(child => this.deserializeEntry(child));
-        }
-
-        this.entries.set(entry.id, entry);
-        return entry;
+        return TreeOperations.toSerializable(this.rootEntries);
     }
 
     /**
@@ -327,16 +414,70 @@ export class FocusSpaceManager {
     }
 
     /**
-     * Check if an entry is a child of a section
+     * Auto-convert a folder to a section with all its contents
+     * This is called when user tries to modify folder children
      */
-    private isChildOfSection(entry: FocusEntry): boolean {
-        for (const [_, parentEntry] of this.entries) {
-            if (parentEntry.type === 'section' && parentEntry.children) {
-                if (parentEntry.children.some(child => child.id === entry.id)) {
-                    return true;
-                }
-            }
+    public async autoConvertFolderToSection(folderId: string): Promise<{ sectionId: string; childEntries: FocusEntry[] } | null> {
+        const folderEntry = TreeOperations.findById(this.rootEntries, folderId);
+        if (!folderEntry || folderEntry.type !== 'folder') {
+            return null;
         }
-        return false;
+
+        try {
+            // Read folder contents
+            const folderContents = await vscode.workspace.fs.readDirectory(folderEntry.uri);
+            
+            // Sort folder contents: directories first, then files, both alphabetically
+            const sortedContents = folderContents.sort((a, b) => {
+                const [nameA, typeA] = a;
+                const [nameB, typeB] = b;
+                
+                // Directories come before files
+                const isDirA = (typeA & vscode.FileType.Directory) !== 0;
+                const isDirB = (typeB & vscode.FileType.Directory) !== 0;
+                
+                if (isDirA && !isDirB) {
+                    return -1;
+                }
+                if (!isDirA && isDirB) {
+                    return 1;
+                }
+                
+                // Within same type, sort alphabetically (case-insensitive)
+                return nameA.toLowerCase().localeCompare(nameB.toLowerCase());
+            });
+            
+            // Check if this folder is inside a section (to preserve hierarchy)
+            const parentEntry = TreeOperations.findParent(this.rootEntries, folderId);
+            const parentSectionId = parentEntry?.type === 'section' ? parentEntry.id : undefined;
+            
+            // Create a section with the folder name
+            const folderName = folderEntry.label || folderEntry.uri.fsPath.split('/').pop() || 'Folder';
+            const section = await this.createSection(folderName);
+            
+            // If the original folder was inside a section, move the new section there too
+            if (parentSectionId) {
+                await this.moveToSection(section.id, parentSectionId);
+            }
+            
+            // Add all folder contents to the section in sorted order
+            const childEntries: FocusEntry[] = [];
+            for (const [name, fileType] of sortedContents) {
+                const childUri = vscode.Uri.joinPath(folderEntry.uri, name);
+                const entryType = (fileType & vscode.FileType.Directory) ? 'folder' : 'file';
+                
+                const childEntry = await this.addEntry(childUri, entryType);
+                await this.moveToSection(childEntry.id, section.id);
+                childEntries.push(childEntry);
+            }
+
+            // Remove the original folder entry
+            await this.removeEntry(folderId);
+            
+            return { sectionId: section.id, childEntries };
+        } catch (error) {
+            console.error('Failed to auto-convert folder to section:', error);
+            return null;
+        }
     }
 }

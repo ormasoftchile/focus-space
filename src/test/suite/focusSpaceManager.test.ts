@@ -153,12 +153,16 @@ suite('FocusSpaceManager Tests', () => {
         assert.strictEqual(topLevel.find(e => e.id === file.id), undefined);
     });
 
-    test('Should not move section to another section', async () => {
+    test('Should allow moving section to another section (nested sections)', async () => {
         const section1 = await manager.createSection('Section 1');
         const section2 = await manager.createSection('Section 2');
 
         const moved = await manager.moveToSection(section1.id, section2.id);
-        assert.strictEqual(moved, false);
+        assert.strictEqual(moved, true);
+        
+        // Verify section1 is now a child of section2
+        const parentSection = manager.getEntry(section2.id);
+        assert.ok(parentSection?.children?.some(child => child.id === section1.id));
     });
 
     test('Should clear all entries', async () => {

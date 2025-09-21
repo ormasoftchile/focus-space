@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { FocusSpaceManager } from './managers/focusSpaceManager';
 import { FocusSpaceTreeDataProvider } from './providers/focusSpaceTreeDataProvider';
+import { FocusEntry } from './models/focusEntry';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Focus Space extension is now active!');
@@ -100,7 +101,6 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Register command to add files/folders to Focus Space
     const addToFocusSpaceCommand = vscode.commands.registerCommand('focusSpace.addToFocusSpace', async (uri?: vscode.Uri, uris?: vscode.Uri[]) => {
-        console.log('addToFocusSpace command executed with:', { uri, uris });
         try {
             let urisToAdd: vscode.Uri[] = [];
 
@@ -277,24 +277,33 @@ export function activate(context: vscode.ExtensionContext) {
                 return;
             }
 
-            // Extract the entry ID from the TreeItem
-            const entryId = treeItem.entryId || treeItem.id;
+            // Extract the entry ID - VS Code might pass either TreeItem or FocusEntry directly
+            let entryId: string | undefined;
+            
+            if (treeItem.entryId) {
+                // TreeItem case
+                entryId = treeItem.entryId;
+            } else if (treeItem.id) {
+                // FocusEntry case (VS Code passes the element directly)
+                entryId = treeItem.id;
+            }
+            
             if (!entryId) {
                 vscode.window.showWarningMessage('Unable to identify item for removal.');
                 return;
             }
 
-            const entry = manager.getEntry(entryId);
-            if (!entry) {
+            // Remove the entry from focus space
+            const success = await manager.removeEntry(entryId);
+            
+            if (success) {
+                vscode.window.showInformationMessage('Removed from Focus Space.');
+            } else {
                 vscode.window.showWarningMessage('Item not found in Focus Space.');
-                return;
             }
 
-            await manager.removeEntry(entryId);
-            const label = entry.label || entry.uri.fsPath.split('/').pop() || 'item';
-            vscode.window.showInformationMessage(`Removed "${label}" from Focus Space.`);
-
         } catch (error) {
+            console.error('Remove command error:', error);
             vscode.window.showErrorMessage(`Error removing from Focus Space: ${error}`);
         }
     });
@@ -323,6 +332,108 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
+    // Register command to remove all items from Focus Space
+    const removeAllCommand = vscode.commands.registerCommand('focusSpace.removeAll', async () => {
+        try {
+            const allEntries = manager.getTopLevelEntries();
+            if (allEntries.length === 0) {
+                vscode.window.showInformationMessage('Focus Space is already empty.');
+                return;
+            }
+
+            // Count total items including children
+            let totalItems = 0;
+            for (const entry of allEntries) {
+                totalItems++; // Count the entry itself
+                if (entry.type === 'section' && entry.children) {
+                    totalItems += entry.children.length; // Count children
+                }
+            }
+
+            const confirmation = await vscode.window.showWarningMessage(
+                `Are you sure you want to remove all ${totalItems} item(s) from Focus Space?`,
+                { modal: true },
+                'Remove All'
+            );
+
+            if (confirmation === 'Remove All') {
+                await manager.clearAll();
+                vscode.window.showInformationMessage('All items removed from Focus Space.');
+            }
+        } catch (error) {
+            vscode.window.showErrorMessage(`Error removing all items: ${error}`);
+        }
+    });
+
+    // Register command to reveal items in Explorer
+    const revealInExplorerCommand = vscode.commands.registerCommand('focusSpace.revealInExplorer', async (treeItem?: any) => {
+        try {
+            if (!treeItem) {
+                vscode.window.showWarningMessage('No item selected for reveal.');
+                return;
+            }
+
+            const entryId = treeItem.entryId || treeItem.id;
+            if (!entryId) {
+                vscode.window.showWarningMessage('Unable to identify item for reveal.');
+                return;
+            }
+
+            const entry = manager.getEntry(entryId);
+            if (!entry) {
+                vscode.window.showWarningMessage('Item not found in Focus Space.');
+                return;
+            }
+
+            // Sections can't be revealed since they don't correspond to filesystem items
+            if (entry.type === 'section') {
+                vscode.window.showWarningMessage('Sections cannot be revealed in Explorer.');
+                return;
+            }
+
+            // Reveal the file/folder in Explorer
+            await vscode.commands.executeCommand('revealInExplorer', entry.uri);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Error revealing in Explorer: ${error}`);
+        }
+    });
+
+    // Register command to convert folder to section
+    const convertFolderToSectionCommand = vscode.commands.registerCommand('focusSpace.convertFolderToSection', async (treeItem?: any) => {
+        try {
+            if (!treeItem) {
+                vscode.window.showWarningMessage('No folder selected for conversion.');
+                return;
+            }
+
+            const entryId = treeItem.entryId || treeItem.id;
+            if (!entryId) {
+                vscode.window.showWarningMessage('Unable to identify folder for conversion.');
+                return;
+            }
+
+            const entry = manager.getEntry(entryId);
+            if (!entry) {
+                vscode.window.showWarningMessage('Folder not found in Focus Space.');
+                return;
+            }
+
+            if (entry.type !== 'folder') {
+                vscode.window.showWarningMessage('Only folders can be converted to sections.');
+                return;
+            }
+
+            const result = await manager.autoConvertFolderToSection(entryId);
+            if (result) {
+                vscode.window.showInformationMessage(`Converted folder to editable section with ${result.childEntries.length} items.`);
+            } else {
+                vscode.window.showWarningMessage('Failed to convert folder to section.');
+            }
+        } catch (error) {
+            vscode.window.showErrorMessage(`Error converting folder to section: ${error}`);
+        }
+    });
+
     context.subscriptions.push(
         treeView, 
         changeListener, 
@@ -334,10 +445,21 @@ export function activate(context: vscode.ExtensionContext) {
         addToFocusSpaceCommand,
         addFilesToFocusSpaceCommand,
         removeFromFocusSpaceCommand,
-        createSectionCommand
+        createSectionCommand,
+        removeAllCommand,
+        revealInExplorerCommand,
+        convertFolderToSectionCommand
     );
 }
 
-export function deactivate() {
+export async function deactivate() {
     console.log('Focus Space extension is deactivated');
+    
+    // Force save any pending changes before deactivation
+    try {
+        const manager = FocusSpaceManager.getInstance();
+        await manager.saveNow();
+    } catch (error) {
+        console.error('Error saving on deactivation:', error);
+    }
 }

@@ -52,6 +52,18 @@
         "title": "Remove from Focus Space"
       },
       {
+        "command": "focusSpace.removeAll",
+        "title": "Remove All from Focus Space"
+      },
+      {
+        "command": "focusSpace.revealInExplorer",
+        "title": "Reveal in Explorer"
+      },
+      {
+        "command": "focusSpace.convertFolderToSection",
+        "title": "Convert to Editable Section"
+      },
+      {
         "command": "focusSpace.createSection",
         "title": "Create Section"
       }
@@ -92,13 +104,28 @@
           "command": "focusSpace.createSection",
           "when": "view == focusSpace",
           "group": "navigation"
+        },
+        {
+          "command": "focusSpace.removeAll",
+          "when": "view == focusSpace",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
         {
           "command": "focusSpace.removeFromFocusSpace",
-          "when": "view == focusSpace",
+          "when": "view == focusSpace && viewItem != section",
           "group": "inline"
+        },
+        {
+          "command": "focusSpace.revealInExplorer",
+          "when": "view == focusSpace && viewItem != section",
+          "group": "navigation"
+        },
+        {
+          "command": "focusSpace.convertFolderToSection",
+          "when": "view == focusSpace && viewItem == folder",
+          "group": "navigation"
         }
       ]
     },

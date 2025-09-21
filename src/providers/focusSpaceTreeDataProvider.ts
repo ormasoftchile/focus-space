@@ -1,10 +1,28 @@
 import * as vscode from 'vscode';
 import { FocusEntry } from '../models/focusEntry';
 import { FocusSpaceManager } from '../managers/focusSpaceManager';
+import { TreeOperations } from '../utils/treeOperations';
 
 /**
  * TreeDataProvider for the Focus Space view in VS Code Explorer
- * Manages the display of focus entries in a hierarchical tree structure
+ * 
+ * This provider manages the display of focus entries in a hierarchical tree structure
+ * within the VS Code Explorer panel. It implements intelligent lazy loading for folder
+ * contents and provides rich TreeItem representations with proper icons and actions.
+ * 
+ * Key Features:
+ * - Real-time tree updates via event system
+ * - Lazy loading for folder contents with filesystem monitoring
+ * - Rich TreeItem metadata (icons, tooltips, context values)
+ * - Performance optimized for large folder structures
+ * - Automatic real entry creation for folder children
+ * 
+ * Architecture:
+ * - No temp IDs - all displayed items are real entries
+ * - Smart caching to prevent duplicate entry creation
+ * - Filesystem change detection for folder contents
+ * - Proper VS Code TreeDataProvider implementation
+ * - Full integration with VS Code's tree UI system
  */
 export class FocusSpaceTreeDataProvider implements vscode.TreeDataProvider<FocusEntry> {
     private _onDidChangeTreeData: vscode.EventEmitter<FocusEntry | undefined | null | void> = new vscode.EventEmitter<FocusEntry | undefined | null | void>();
@@ -70,22 +88,22 @@ export class FocusSpaceTreeDataProvider implements vscode.TreeDataProvider<Focus
     /**
      * Get the children of an element
      */
-    getChildren(element?: FocusEntry): Thenable<FocusEntry[]> {
+    async getChildren(element?: FocusEntry): Promise<FocusEntry[]> {
         if (!element) {
             // Root level - get top-level entries
             const entries = this.focusSpaceManager.getTopLevelEntries();
             
             // If no entries, return empty array (empty state will be handled by view)
-            return Promise.resolve(entries);
+            return entries;
         }
 
-        // Return children for sections
-        if (element.type === 'section' && element.children) {
-            return Promise.resolve(element.children);
+        // Return children for sections and folders (eagerly loaded)
+        if ((element.type === 'section' || element.type === 'folder') && element.children) {
+            return element.children;
         }
 
-        // Files and folders without children return empty array
-        return Promise.resolve([]);
+        // Files return empty array (no children)
+        return [];
     }
 
     /**

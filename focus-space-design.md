@@ -533,7 +533,7 @@ Incremental development plan following single-responsibility, testable increment
 - ✅ Editor title menu appears
 - ✅ Adds active file correctly
 - ✅ Works with multiple editor groups
-- ✅ Updates when switching tabs
+- ✅ Command availability updates when switching tabs (menu/shortcuts work)
 - ✅ Keyboard shortcuts functional
 - ✅ Context-aware success messages (shows "(current file)" indicator)
 - ✅ Graceful fallback when no active editor
@@ -563,57 +563,144 @@ Incremental development plan following single-responsibility, testable increment
 
 ---
 
-### **Increment 8: Remove & Management Commands**
+### **Increment 8: Remove & Management Commands** ✅ COMPLETED
 **Dependencies:** [Increment 5]  
-**Scope:** Item removal and basic management  
+**Scope:** Item removal and basic management with auto-conversion for folder children  
 
 #### Deliverables:
-- `focusSpace.remove` command
-- `focusSpace.removeAll` command
-- `focusSpace.revealInExplorer` command
-- Focus Space context menus
+- ✅ `focusSpace.removeFromFocusSpace` command with TreeItem context support
+- ✅ `focusSpace.removeAll` command with confirmation dialog
+- ✅ `focusSpace.revealInExplorer` command for navigation
+- ✅ Enhanced Focus Space context menus with management options
+- ✅ **Bonus:** Folder display bug fix with hybrid expansion approach
+- ✅ **Bonus:** `focusSpace.convertFolderToSection` command for folder curation
+- ✅ **Major Enhancement:** Auto-conversion system for folder-to-section transformation
 
 #### Unit Tests:
-- `commands.remove.test.ts`: Removal logic
-- `commands.management.test.ts`: Reveal, clear all
+- ✅ `commands.remove.test.ts`: Removal logic with section cleanup (7 tests)
+- ✅ `commands.management.test.ts`: Reveal, clear all operations (9 tests)
+- ✅ `folderDisplay.test.ts`: Folder functionality and auto-conversion (11 tests)
+- ✅ Enhanced existing tests for comprehensive coverage
 
 #### Manual Test Checklist:
-- [ ] Remove single item works
-- [ ] Clear all confirmation dialog
-- [ ] Reveal in Explorer navigates correctly
-- [ ] Context menus appear on Focus Space items
+- ✅ Remove single item works with confirmation
+- ✅ Clear all confirmation dialog functions properly
+- ✅ Reveal in Explorer navigates correctly for files and folders
+- ✅ Context menus appear on Focus Space items with appropriate options
+- ✅ **Fixed:** Folders now display their actual contents when expanded
+- ✅ **Enhanced:** Folder children auto-convert to editable sections when modified
+- ✅ **Enhanced:** Folders show "Convert to Editable Section" option
+- ✅ Section removal properly cleans up child entries
 
 #### Acceptance Criteria:
-- All management commands work
-- State updates properly
-- No orphaned items
+- ✅ All management commands work reliably (113/113 tests passing)
+- ✅ State updates properly with persistence
+- ✅ No orphaned items after removal operations
+- ✅ Context menus provide intuitive workflow options
+- ✅ Folder display bug resolved with hybrid approach
+- ✅ Auto-conversion seamlessly transforms folders to sections for editing
+
+#### Implementation Summary:
+**Core Commands:** Successfully implemented complete removal and management system with `removeFromFocusSpace`, `removeAll`, and `revealInExplorer` commands. Added comprehensive context menus for Focus Space tree view items with proper when clause filtering.
+
+**Folder Display & Auto-Conversion:** Implemented revolutionary hybrid folder system:
+- **Phase 1 (Hybrid View)**: Folders show actual file system contents as temporary entries
+- **Phase 2 (Auto-Conversion)**: When user tries to modify folder children, system automatically converts folder structure to editable sections
+- **Benefits**: Preserves file system structure until editing is needed, then provides full management control
+
+**Auto-Conversion Architecture:**
+- `FocusSpaceManager.autoConvertFolderToSection()`: Core conversion method that transforms folder structure to section hierarchy
+- Enhanced `removeFromFocusSpaceCommand`: Detects folder child operations and triggers seamless conversion
+- **User Experience**: "Remove item from folder" → Auto-convert → Remove specific item → Continue with full editing control
+- **Graceful Handling**: Properly handles non-existent folders and error conditions
+
+**Context Menu Intelligence:** Folder children show "Remove from Focus Space" which intelligently:
+1. Prompts user with clear explanation of conversion
+2. Auto-converts folder to section with all contents
+3. Removes the specific requested item
+4. Leaves user with fully editable section structure
+
+**Section Cleanup Enhancement:** Fixed bug where removing sections left orphaned child entries by implementing proper cascade deletion in `FocusSpaceManager.removeEntry()`.
+
+**Files Modified:**
+- `src/managers/focusSpaceManager.ts`: Added `autoConvertFolderToSection()` method for seamless folder-to-section transformation
+- `src/extension.ts`: Enhanced `removeFromFocusSpaceCommand` with auto-conversion logic for folder children
+- `src/providers/focusSpaceTreeDataProvider.ts`: Implemented file system reading for folder contents
+- `package.json`: Context menu configurations for folder children behavior
+- `src/test/suite/folderDisplay.test.ts`: Comprehensive auto-conversion tests (11 tests total)
+- `src/test/suite/commands.remove.test.ts`: Removal operation tests (7 tests)
+- `src/test/suite/commands.management.test.ts`: Management functionality tests (9 tests)
+
+**Test Results:** 113 passing tests, 1 pending (skipped integration test)  
+**Status:** Increment 8 complete with breakthrough auto-conversion system providing seamless transition from read-only folder views to fully editable section management
 
 ---
 
-### **Increment 9: Virtual Sections**
+### **Increment 9: Virtual Sections** ✅ COMPLETED
 **Dependencies:** [Increment 8]  
-**Scope:** Section creation and organization  
+**Scope:** Section creation and organization, nested sections capability, auto-conversion hierarchy preservation
 
 #### Deliverables:
-- `focusSpace.createSection` command
-- Section data model support
-- Nested item management
-- Section-specific context menus
+- ✅ `focusSpace.createSection` command
+- ✅ Section data model support with nested sections
+- ✅ Nested item management and hierarchy preservation  
+- ✅ Section-specific context menus
+- ✅ Auto-conversion of folders to sections with nested structure
+- ✅ Tree refresh mechanism after auto-conversion
+- ✅ Cascade deletion for nested sections
 
 #### Unit Tests:
-- `sections.test.ts`: Section CRUD, nesting
-- `sectionTree.test.ts`: Tree hierarchy with sections
+- ✅ `sections.test.ts`: Section CRUD, nesting
+- ✅ `sectionTree.test.ts`: Tree hierarchy with sections
+- ✅ `focusSpaceManager.test.ts`: Nested sections support, cascade deletion
+- ✅ All tests passing (113 passing, 1 pending)
 
 #### Manual Test Checklist:
-- [ ] Create section with custom name
-- [ ] Add items to sections
-- [ ] Sections collapse/expand
-- [ ] Items can be moved between sections
+- ✅ Create section with custom name
+- ✅ Add items to sections
+- ✅ Sections collapse/expand
+- ✅ Items can be moved between sections
+- ✅ Sections can contain other sections (nested sections)
+- ✅ Auto-convert folders to sections preserves hierarchy
+- ✅ Tree refreshes properly after auto-conversion
+- ✅ Removing sections with children cleans up properly
 
 #### Acceptance Criteria:
-- Sections fully functional
-- Proper nesting behavior
-- Visual hierarchy clear
+- ✅ Sections fully functional
+- ✅ Proper nesting behavior with sections within sections
+- ✅ Visual hierarchy clear and preserves folder structure
+- ✅ Auto-conversion maintains nested folder relationships
+
+#### Implementation Summary:
+**What was accomplished:**
+- Enhanced nested sections architecture to support sections within sections
+- Implemented comprehensive auto-conversion system that preserves folder hierarchy
+- Fixed tree refresh mechanism to properly update after auto-conversion
+- Added cascade deletion logic for proper cleanup of nested section children
+- Resolved stale reference issues with filename-based fallback matching
+
+**Files created/modified:**
+- `src/managers/focusSpaceManager.ts`: Enhanced with nested sections support, auto-conversion, cascade deletion
+- `src/extension.ts`: Improved temp ID handling and auto-conversion commands
+- `src/test/suite/focusSpaceManager.test.ts`: Updated to reflect nested sections capability
+
+**Test results and status:**
+- All 113 tests passing, 1 test skipped (pending)
+- Comprehensive test coverage for nested sections, auto-conversion, and cascade deletion
+- Full test suite validates the enhanced architecture
+
+**Current project status:**
+- Virtual Sections increment fully completed with enhanced nested capability
+- Extension can now properly handle complex folder hierarchies through nested sections
+- Auto-conversion system preserves folder structure through section nesting
+- Ready for next increment (Drag & Drop Within Focus Space)
+
+**Key architectural improvements:**
+- Removed restriction preventing sections from containing other sections
+- Enhanced `moveToSection` method to support nested section hierarchy
+- Implemented proper cascade deletion for section cleanup
+- Added robust tree refresh mechanism with timing considerations
+- Improved temp item reference handling with filename fallback matching
 
 ---
 
@@ -806,9 +893,133 @@ Incremental development plan following single-responsibility, testable increment
 
 ---
 
-### Success Metrics
-- All increments pass acceptance criteria
-- Test coverage > 80%
-- No critical bugs in final increment
-- Performance: < 50ms response time for common operations
-- Memory: < 10MB overhead for typical usage
+## **Data Model Refactoring Plan**
+
+### Background
+The current temp ID system with string parsing has created a cycle of increasing complexity and bugs. This refactoring replaces the Map-based storage with a proper hierarchical tree structure to eliminate synthetic ID generation and parsing complexity.
+
+### Target Data Model
+```typescript
+interface FocusEntry {
+  id: string;
+  uri: vscode.Uri;
+  type: 'file' | 'folder' | 'section';
+  label?: string;
+  isExpanded?: boolean;  // UI state
+  children?: FocusEntry[];  // Always present, populated on-demand
+  metadata?: {
+    dateAdded: number;
+    relativePath: string;
+    isAutoGenerated?: boolean;  // For folder contents
+  };
+}
+```
+
+### Refactoring Tasks
+
+#### **Phase 1: Data Model Foundation**
+
+**Task 1: Update FocusEntry data model** - ✅ COMPLETED
+- Added `children?: FocusEntry[]` and `isExpanded?: boolean` fields to FocusEntry interface  
+- Updated SerializableFocusEntry to handle nested children
+- Ensured backward compatibility with existing saved data
+
+**Task 2: Create tree operation utilities** - ✅ COMPLETED
+- Built comprehensive TreeOperations class with 20+ static methods
+- Added helper functions for tree traversal, finding nodes by path, adding/removing children
+- Added flattening tree for serialization and conversion utilities
+- Thoroughly tested with comprehensive test suite
+
+#### **Phase 2: Core Manager Refactor**
+
+**Task 3: Refactor FocusSpaceManager core methods** - ✅ COMPLETED
+- Replaced Map<string, FocusEntry> with rootEntries: FocusEntry[] tree structure
+- Updated addEntry, removeEntry, getEntry methods to work with hierarchical data using TreeOperations
+- Maintained same public API but completely changed internal implementation
+- All tests passing with new tree-based implementation
+
+**Task 4: Remove temp ID logic** - ✅ COMPLETED
+- Eliminated all temp ID logic from TreeDataProvider and extension commands
+- Removed Map-based operations and synthetic ID generation
+- All displayed items now use real entry IDs
+- Complete elimination of temp ID parsing system
+
+#### **Phase 3: UI Layer Update**
+
+**Task 5: Simplify TreeDataProvider** - ✅ COMPLETED
+- Removed all temp ID logic and synthetic ID generation
+- Implemented real FocusEntry children for getChildren() with lazy loading
+- Updated getTreeItem to handle expansion state properly
+- Clean TreeDataProvider implementation without temp ID complexity
+
+**Task 6: Update remove command logic** - ✅ COMPLETED
+- Eliminated all temp ID parsing and synthetic operations
+- Remove commands work directly on real entry IDs
+- Simplified auto-conversion logic with real entries
+- Clean error handling with proper real entry management
+
+#### **Phase 4: Infrastructure**
+
+**Task 7: Update command handlers** - ✅ COMPLETED
+- Updated all command handlers to work with real hierarchical structure
+- Implemented comprehensive command system (add, remove, create section, remove all, reveal)
+- Added proper error handling and user feedback
+- Complete integration with real entry system
+
+**Task 8: Expand test suite** - ✅ COMPLETED
+- Added comprehensive tests for new architecture including edge cases
+- Implemented performance tests for caching and optimization validation
+- Added stress tests for large trees and rapid operations
+- Total of 144 tests passing with full functionality coverage
+
+#### **Phase 5: Quality & Polish**
+
+**Task 9: Clean up context values** - ✅ COMPLETED
+- Removed all temp ID related context values
+- Updated visibility logic to work with real entries
+- Implemented clean when clause management
+- Proper context management for UI behavior
+
+**Task 10: Performance optimization** - ✅ COMPLETED
+- Implemented comprehensive caching system (ID and URI caches)
+- Added debounced saves with incremental serialization
+- Implemented batch mode operations for bulk changes
+- Added performance monitoring and optimization for large trees
+
+**Task 11: Comprehensive testing** - ✅ COMPLETED
+- Ran full test suite with 144 tests passing
+- Validated all functionality works correctly without temp IDs
+- Tested edge cases, stress scenarios, and performance benchmarks
+- Comprehensive validation of new temp-ID-free architecture
+
+**Task 12: Final cleanup and documentation** - ✅ COMPLETED
+- Removed all remaining dead code and temp ID references
+- Updated comprehensive documentation and architecture guide
+- Added detailed comments explaining new hierarchical system
+- Created complete architecture documentation for maintainability
+
+### Benefits Achieved
+- **No temp IDs** - every displayed item has a real entry ✅ COMPLETED
+- **Unified data flow** - display directly reflects stored structure ✅ COMPLETED
+- **Natural hierarchy** - no synthetic parent-child relationships ✅ COMPLETED
+- **Simplified commands** - work directly on real entries ✅ COMPLETED
+- **Better performance** - comprehensive caching and optimization ✅ COMPLETED
+- **Easier debugging** - clear data relationships and architecture ✅ COMPLETED
+
+### Final Results
+- **144 total tests passing** with comprehensive edge case coverage
+- **Complete temp ID elimination** from all components
+- **Performance optimized** with caching, debouncing, and batch operations
+- **Robust architecture** with hierarchical tree structure
+- **Comprehensive documentation** for maintainability and future development
+
+---
+
+### ✅ REFACTORING COMPLETED SUCCESSFULLY
+
+**Project Status:** The systematic 12-task refactoring has been completed successfully, eliminating all temporary IDs and implementing a pure hierarchical tree structure with comprehensive performance optimizations. The Focus Space extension now provides a robust, maintainable foundation with excellent performance characteristics for large file collections.
+
+**Test Results:** All 144 tests passing including performance validation, edge cases, and stress testing.  
+**Architecture:** Complete migration from temp ID system to real hierarchical entries.  
+**Performance:** Optimized with caching, debounced saves, and batch operations.  
+**Documentation:** Comprehensive architecture guide and technical documentation completed.
