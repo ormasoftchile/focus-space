@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { FocusEntry, SerializableFocusEntry, FocusSpaceConfig } from '../models/focusEntry';
 import { TreeOperations } from '../utils/treeOperations';
+import { ActiveEditorTracker } from '../utils/activeEditorTracker';
 
 /**
  * Singleton manager for Focus Space
@@ -35,13 +36,20 @@ export class FocusSpaceManager {
     private isDirty: boolean = false;
     private saveTimeout: NodeJS.Timeout | undefined;
     private readonly SAVE_DELAY = 500; // ms - debounce saves
+    private activeEditorTracker: ActiveEditorTracker;
     
     // Event emitter for tree data changes
     private _onDidChange: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
     readonly onDidChange: vscode.Event<void> = this._onDidChange.event;
+    
+    // Event emitter for active file changes in Focus Space
+    private _onDidChangeActiveFile: vscode.EventEmitter<vscode.Uri | undefined> = new vscode.EventEmitter<vscode.Uri | undefined>();
+    readonly onDidChangeActiveFile: vscode.Event<vscode.Uri | undefined> = this._onDidChangeActiveFile.event;
 
     private constructor(context: vscode.ExtensionContext) {
         this.context = context;
+        this.activeEditorTracker = new ActiveEditorTracker();
+        this.setupActiveFileTracking();
         this.initializeStorage();
     }
 
@@ -263,6 +271,13 @@ export class FocusSpaceManager {
      */
     public getEntry(id: string): FocusEntry | undefined {
         return TreeOperations.findById(this.rootEntries, id);
+    }
+
+    /**
+     * Get an entry by URI
+     */
+    public getEntryByUri(uri: vscode.Uri): FocusEntry | undefined {
+        return TreeOperations.findByUri(this.rootEntries, uri);
     }
 
     /**
@@ -517,5 +532,55 @@ export class FocusSpaceManager {
             console.error('Failed to auto-convert folder to section:', error);
             return null;
         }
+    }
+
+    /**
+     * Setup active file tracking to monitor files in Focus Space
+     */
+    private setupActiveFileTracking(): void {
+        this.activeEditorTracker.onDidChangeActiveFile((uri) => {
+            // Check if the active file is in Focus Space
+            if (uri && this.hasEntry(uri)) {
+                this._onDidChangeActiveFile.fire(uri);
+            } else {
+                this._onDidChangeActiveFile.fire(undefined);
+            }
+        });
+    }
+
+    /**
+     * Get the currently active file URI
+     */
+    public getActiveFileUri(): vscode.Uri | undefined {
+        return this.activeEditorTracker.activeFileUri;
+    }
+
+    /**
+     * Check if a given URI is the currently active file
+     */
+    public isActiveFile(uri: vscode.Uri): boolean {
+        return this.activeEditorTracker.isActiveFile(uri);
+    }
+
+    /**
+     * Check if a given URI is currently visible in any editor
+     */
+    public isVisibleFile(uri: vscode.Uri): boolean {
+        return this.activeEditorTracker.isVisibleFile(uri);
+    }
+
+    /**
+     * Get all currently visible file URIs
+     */
+    public getVisibleFileUris(): vscode.Uri[] {
+        return this.activeEditorTracker.getVisibleFileUris();
+    }
+
+    /**
+     * Check if the currently active file is in Focus Space
+     */
+    public isActiveFocusFile(): boolean {
+        const activeUri = this.getActiveFileUri();
+        return activeUri ? this.hasEntry(activeUri) : false;
     }
 }

@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { FocusSpaceManager } from './managers/focusSpaceManager';
 import { FocusSpaceTreeDataProvider } from './providers/focusSpaceTreeDataProvider';
 import { FocusSpaceDragAndDropController } from './controllers/focusSpaceDragAndDropController';
+import { FocusSpaceRevealHandler } from './utils/focusSpaceRevealHandler';
 import { FocusEntry } from './models/focusEntry';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -22,6 +23,11 @@ export function activate(context: vscode.ExtensionContext) {
         dragAndDropController,
         showCollapseAll: true
     });
+    
+    // Initialize the reveal handler
+    const revealHandler = new FocusSpaceRevealHandler(manager);
+    revealHandler.setTreeView(treeView);
+    revealHandler.setupRevealInterception();
     
     // Update visibility context based on entries and configuration
     const updateVisibilityContext = () => {
@@ -442,7 +448,8 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         treeView, 
         changeListener, 
-        configChangeListener, 
+        configChangeListener,
+        revealHandler,
         disposable, 
         testDataCommand, 
         populateTestDataCommand, 

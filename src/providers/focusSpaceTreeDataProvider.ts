@@ -27,11 +27,23 @@ import { TreeOperations } from '../utils/treeOperations';
 export class FocusSpaceTreeDataProvider implements vscode.TreeDataProvider<FocusEntry> {
     private _onDidChangeTreeData: vscode.EventEmitter<FocusEntry | undefined | null | void> = new vscode.EventEmitter<FocusEntry | undefined | null | void>();
     readonly onDidChangeTreeData: vscode.Event<FocusEntry | undefined | null | void> = this._onDidChangeTreeData.event;
+    private activeFileUri: vscode.Uri | undefined;
 
     constructor(private focusSpaceManager: FocusSpaceManager) {
         // Listen for changes in the focus space manager
         this.focusSpaceManager.onDidChange(() => {
             this.refresh();
+        });
+        
+        // Listen for active file changes to update highlighting
+        this.focusSpaceManager.onDidChangeActiveFile((uri) => {
+            const previousActiveUri = this.activeFileUri;
+            this.activeFileUri = uri;
+            
+            // Refresh the tree if active file changed to/from a Focus Space file
+            if (previousActiveUri || uri) {
+                this.refresh();
+            }
         });
     }
 
@@ -53,6 +65,11 @@ export class FocusSpaceTreeDataProvider implements vscode.TreeDataProvider<Focus
             vscode.TreeItemCollapsibleState.None
         );
 
+        // Check if this is the currently active file
+        const isActiveFile = this.activeFileUri && 
+            element.type !== 'section' && 
+            element.uri.toString() === this.activeFileUri.toString();
+
         // Set the resource URI for files and folders
         if (element.type !== 'section') {
             treeItem.resourceUri = element.uri;
@@ -67,6 +84,23 @@ export class FocusSpaceTreeDataProvider implements vscode.TreeDataProvider<Focus
         // Store the entry ID in the TreeItem for commands to access
         (treeItem as any).entryId = element.id;
 
+        // Add visual highlighting for active file
+        if (isActiveFile) {
+            // Add visual indicator for active file - use a different icon or decoration
+            treeItem.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('focusSpace.activeFile'));
+            
+            // Add to description to make it more visible
+            const currentDescription = treeItem.description || '';
+            treeItem.description = `${currentDescription} ● active`.trim();
+            
+            // Update tooltip to indicate active status
+            if (treeItem.tooltip) {
+                treeItem.tooltip = `${treeItem.tooltip}\n● Currently Active`;
+            } else {
+                treeItem.tooltip = '● Currently Active';
+            }
+        }
+
         // Add command for files to open them
         if (element.type === 'file') {
             treeItem.command = {
@@ -76,8 +110,8 @@ export class FocusSpaceTreeDataProvider implements vscode.TreeDataProvider<Focus
             };
         }
 
-        // Add tooltip with metadata
-        if (element.metadata) {
+        // Add tooltip with metadata (if not already set above)
+        if (element.metadata && !isActiveFile) {
             const dateAdded = new Date(element.metadata.dateAdded).toLocaleDateString();
             treeItem.tooltip = `${element.metadata.relativePath}\nAdded: ${dateAdded}`;
         }

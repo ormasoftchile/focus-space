@@ -142,6 +142,17 @@
         "mac": "cmd+shift+alt+f"
       }
     ],
+    "colors": [
+      {
+        "id": "focusSpace.activeFile",
+        "description": "Color for the active file indicator in Focus Space",
+        "defaults": {
+          "dark": "#007ACC",
+          "light": "#005A9F",
+          "highContrast": "#ffffff"
+        }
+      }
+    ],
     "configuration": {
       "title": "Focus Space",
       "properties": {
@@ -149,6 +160,16 @@
           "type": "boolean",
           "default": true,
           "description": "Automatically hide the Focus Space view when it contains no items"
+        },
+        "focusSpace.revealBehavior": {
+          "type": "string",
+          "enum": [
+            "smart",
+            "focus-space-only", 
+            "both"
+          ],
+          "default": "smart",
+          "description": "Control how files are revealed when opened. 'smart': reveal in Focus Space if present, otherwise Explorer; 'focus-space-only': only reveal in Focus Space; 'both': reveal in both Focus Space and Explorer"
         }
       }
     }
