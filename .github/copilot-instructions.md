@@ -8,3 +8,16 @@ User prefers suggestions that include comments explaining complex logic or decis
 User values direct approach and doesn't like unnecessary praise or verbosity in comments or documentation.
 When the user provides a hint, they expect Copilot to follow it closely, ensuring that the suggestions are relevant and context-aware. Dont second guess the user's intent. Don't provide alternative suggestions unless explicitly asked for.
 If next step in unclear, ask for clarification.
+
+#### Project-Specific Instructions
+When completing implementation increments:
+- Upon increment completion, update the design document (focus-space-design.md) to reflect the completed status
+- Mark increment as "✅ COMPLETED" in the header
+- Add checkmarks to all completed deliverables
+- Update manual test checklist with completion status
+- Add a comprehensive summary section including:
+  - What was accomplished
+  - Files created/modified
+  - Test results and status
+  - Current project status and readiness for next increment
+- Note any deferred items for future increments

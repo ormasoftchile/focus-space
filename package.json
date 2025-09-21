@@ -24,6 +24,10 @@
       {
         "command": "focusSpace.test",
         "title": "Test Focus Space"
+      },
+      {
+        "command": "focusSpace.testData",
+        "title": "Test Focus Space Data"
       }
     ],
     "views": {
