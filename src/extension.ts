@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { FocusSpaceManager } from './managers/focusSpaceManager';
+import { FocusSpaceTreeDataProvider } from './providers/focusSpaceTreeDataProvider';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Focus Space extension is now active!');
@@ -9,6 +10,27 @@ export function activate(context: vscode.ExtensionContext) {
     
     // Initialize the FocusSpaceManager
     const manager = FocusSpaceManager.getInstance(context);
+    
+    // Initialize the TreeDataProvider
+    const treeDataProvider = new FocusSpaceTreeDataProvider(manager);
+    
+    // Register the tree view
+    const treeView = vscode.window.createTreeView('focusSpace', {
+        treeDataProvider,
+        showCollapseAll: true
+    });
+    
+    // Update visibility context based on entries
+    const updateVisibilityContext = () => {
+        const hasItems = manager.getTopLevelEntries().length > 0;
+        vscode.commands.executeCommand('setContext', 'focusSpace.hasItems', hasItems);
+    };
+    
+    // Set initial context
+    updateVisibilityContext();
+    
+    // Update context when data changes
+    const changeListener = manager.onDidChange(updateVisibilityContext);
     
     // Register a simple command to test activation
     const disposable = vscode.commands.registerCommand('focusSpace.test', () => {
@@ -31,7 +53,33 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    context.subscriptions.push(disposable, testDataCommand);
+    // Register a command to populate sample data for testing
+    const populateTestDataCommand = vscode.commands.registerCommand('focusSpace.populateTestData', async () => {
+        try {
+            // Clear existing data
+            await manager.clearAll();
+            
+            // Add sample files
+            await manager.addEntry(vscode.Uri.file('/project/src/main.ts'), 'file', undefined, 'Main Entry');
+            await manager.addEntry(vscode.Uri.file('/project/src/utils.ts'), 'file');
+            await manager.addEntry(vscode.Uri.file('/project/docs'), 'folder');
+            
+            // Create a section with files
+            const section = await manager.createSection('Core Components');
+            const componentFile = await manager.addEntry(vscode.Uri.file('/project/src/component.tsx'), 'file');
+            const serviceFile = await manager.addEntry(vscode.Uri.file('/project/src/service.ts'), 'file');
+            
+            // Move files to section
+            await manager.moveToSection(componentFile.id, section.id);
+            await manager.moveToSection(serviceFile.id, section.id);
+            
+            vscode.window.showInformationMessage('Sample data populated in Focus Space! Check the Explorer panel.');
+        } catch (error) {
+            vscode.window.showErrorMessage(`Error populating test data: ${error}`);
+        }
+    });
+
+    context.subscriptions.push(treeView, changeListener, disposable, testDataCommand, populateTestDataCommand);
 }
 
 export function deactivate() {

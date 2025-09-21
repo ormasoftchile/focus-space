@@ -28,6 +28,10 @@
       {
         "command": "focusSpace.testData",
         "title": "Test Focus Space Data"
+      },
+      {
+        "command": "focusSpace.populateTestData",
+        "title": "Populate Focus Space Test Data"
       }
     ],
     "views": {
@@ -36,7 +40,8 @@
           "id": "focusSpace",
           "name": "Focus Space",
           "icon": "$(target)",
-          "contextualTitle": "Focus Space"
+          "contextualTitle": "Focus Space",
+          "when": "focusSpace.hasItems"
         }
       ]
     }

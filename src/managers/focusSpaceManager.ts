@@ -11,6 +11,10 @@ export class FocusSpaceManager {
     private context: vscode.ExtensionContext;
     private storageUri: vscode.Uri | undefined;
     private readonly CONFIG_VERSION = '1.0.0';
+    
+    // Event emitter for tree data changes
+    private _onDidChange: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
+    readonly onDidChange: vscode.Event<void> = this._onDidChange.event;
 
     private constructor(context: vscode.ExtensionContext) {
         this.context = context;
@@ -72,6 +76,7 @@ export class FocusSpaceManager {
         }
 
         await this.persist();
+        this._onDidChange.fire();
         return entry;
     }
 
@@ -98,6 +103,7 @@ export class FocusSpaceManager {
         // Remove the entry itself
         this.entries.delete(id);
         await this.persist();
+        this._onDidChange.fire();
         return true;
     }
 
@@ -124,6 +130,13 @@ export class FocusSpaceManager {
     }
 
     /**
+     * Get top-level entries (alias for getEntries() with no parent)
+     */
+    public getTopLevelEntries(): FocusEntry[] {
+        return this.getEntries();
+    }
+
+    /**
      * Check if an entry exists for a given URI
      */
     public hasEntry(uri: vscode.Uri): boolean {
@@ -138,6 +151,7 @@ export class FocusSpaceManager {
     public async clearAll(): Promise<void> {
         this.entries.clear();
         await this.persist();
+        this._onDidChange.fire();
     }
 
     /**
