@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { FocusSpaceManager } from './managers/focusSpaceManager';
 import { FocusSpaceTreeDataProvider } from './providers/focusSpaceTreeDataProvider';
+import { FocusSpaceDragAndDropController } from './controllers/focusSpaceDragAndDropController';
 import { FocusEntry } from './models/focusEntry';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -12,9 +13,13 @@ export function activate(context: vscode.ExtensionContext) {
     // Initialize the TreeDataProvider
     const treeDataProvider = new FocusSpaceTreeDataProvider(manager);
     
-    // Register the tree view
+    // Initialize the Drag and Drop Controller
+    const dragAndDropController = new FocusSpaceDragAndDropController(manager);
+    
+    // Register the tree view with drag and drop support
     const treeView = vscode.window.createTreeView('focusSpace', {
         treeDataProvider,
+        dragAndDropController,
         showCollapseAll: true
     });
     

@@ -128,8 +128,12 @@ export class FocusSpaceManager {
                     const isDirA = (typeA & vscode.FileType.Directory) !== 0;
                     const isDirB = (typeB & vscode.FileType.Directory) !== 0;
                     
-                    if (isDirA && !isDirB) return -1;
-                    if (!isDirA && isDirB) return 1;
+                    if (isDirA && !isDirB) {
+                        return -1;
+                    }
+                    if (!isDirA && isDirB) {
+                        return 1;
+                    }
                     
                     // Then alphabetically within each type
                     return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
@@ -169,8 +173,12 @@ export class FocusSpaceManager {
                                 const isDirA = (typeA & vscode.FileType.Directory) !== 0;
                                 const isDirB = (typeB & vscode.FileType.Directory) !== 0;
                                 
-                                if (isDirA && !isDirB) return -1;
-                                if (!isDirA && isDirB) return 1;
+                                if (isDirA && !isDirB) {
+                                    return -1;
+                                }
+                                if (!isDirA && isDirB) {
+                                    return 1;
+                                }
                                 
                                 // Then alphabetically within each type
                                 return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
@@ -324,6 +332,35 @@ export class FocusSpaceManager {
         
         if (moved) {
             this.markDirtyAndScheduleSave();
+            this._onDidChange.fire();
+        }
+        
+        return moved;
+    }
+
+    /**
+     * Reorder an entry within its current parent
+     */
+    public async reorderEntry(entryId: string, newIndex: number, parentId?: string): Promise<boolean> {
+        const reordered = TreeOperations.reorderEntry(this.rootEntries, entryId, newIndex, parentId);
+        
+        if (reordered) {
+            this.markDirtyAndScheduleSave();
+            this._onDidChange.fire();
+        }
+        
+        return reordered;
+    }
+
+    /**
+     * Move an entry to a different section with position control
+     */
+    public async moveToSectionWithPosition(entryId: string, sectionId?: string, position?: number): Promise<boolean> {
+        const moved = TreeOperations.moveEntryWithPosition(this.rootEntries, entryId, sectionId, position);
+        
+        if (moved) {
+            this.markDirtyAndScheduleSave();
+            this._onDidChange.fire();
         }
         
         return moved;

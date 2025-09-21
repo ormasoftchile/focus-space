@@ -414,4 +414,84 @@ export class TreeOperations {
         entry.children = undefined;
         entry.isExpanded = false;
     }
+
+    /**
+     * Reorder an entry within its current parent to a new position
+     */
+    static reorderEntry(entries: FocusEntry[], entryId: string, newIndex: number, parentId?: string): boolean {
+        const targetArray = parentId ? 
+            this.findById(entries, parentId)?.children : 
+            entries;
+        
+        if (!targetArray) {
+            return false;
+        }
+
+        // Find current index of the entry
+        const currentIndex = targetArray.findIndex(entry => entry.id === entryId);
+        if (currentIndex === -1) {
+            return false;
+        }
+
+        // Remove the entry from current position
+        const [movedEntry] = targetArray.splice(currentIndex, 1);
+        
+        // Insert at new position (clamp to valid range)
+        const clampedIndex = Math.max(0, Math.min(newIndex, targetArray.length));
+        targetArray.splice(clampedIndex, 0, movedEntry);
+        
+        this.clearCache(); // Clear cache after modification
+        return true;
+    }
+
+    /**
+     * Move an entry with position control
+     */
+    static moveEntryWithPosition(
+        entries: FocusEntry[], 
+        entryId: string, 
+        newParentId?: string, 
+        position?: number
+    ): boolean {
+        // Find the entry to move
+        const entry = this.findById(entries, entryId);
+        if (!entry) {
+            return false;
+        }
+
+        // Remove from current location
+        const removed = this.removeById(entries, entryId);
+        if (!removed) {
+            return false;
+        }
+
+        // Add to new location at specific position
+        if (newParentId) {
+            const newParent = this.findById(entries, newParentId);
+            if (!newParent) {
+                return false;
+            }
+            if (!newParent.children) {
+                newParent.children = [];
+            }
+            
+            if (position !== undefined) {
+                const clampedPosition = Math.max(0, Math.min(position, newParent.children.length));
+                newParent.children.splice(clampedPosition, 0, entry);
+            } else {
+                newParent.children.push(entry);
+            }
+        } else {
+            // Add to root level at specific position
+            if (position !== undefined) {
+                const clampedPosition = Math.max(0, Math.min(position, entries.length));
+                entries.splice(clampedPosition, 0, entry);
+            } else {
+                entries.push(entry);
+            }
+        }
+
+        this.clearCache(); // Clear cache after modification
+        return true;
+    }
 }
