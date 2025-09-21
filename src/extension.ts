@@ -20,10 +20,15 @@ export function activate(context: vscode.ExtensionContext) {
         showCollapseAll: true
     });
     
-    // Update visibility context based on entries
+    // Update visibility context based on entries and configuration
     const updateVisibilityContext = () => {
         const hasItems = manager.getTopLevelEntries().length > 0;
-        vscode.commands.executeCommand('setContext', 'focusSpace.hasItems', hasItems);
+        const hideWhenEmpty = vscode.workspace.getConfiguration('focusSpace').get<boolean>('hideWhenEmpty', true);
+        
+        // Show view if: has items OR (no items but hideWhenEmpty is disabled)
+        const shouldShow = hasItems || !hideWhenEmpty;
+        
+        vscode.commands.executeCommand('setContext', 'focusSpace.hasItems', shouldShow);
     };
     
     // Set initial context
@@ -31,6 +36,13 @@ export function activate(context: vscode.ExtensionContext) {
     
     // Update context when data changes
     const changeListener = manager.onDidChange(updateVisibilityContext);
+    
+    // Listen for configuration changes
+    const configChangeListener = vscode.workspace.onDidChangeConfiguration(event => {
+        if (event.affectsConfiguration('focusSpace.hideWhenEmpty')) {
+            updateVisibilityContext();
+        }
+    });
     
     // Register a simple command to test activation
     const disposable = vscode.commands.registerCommand('focusSpace.test', () => {
@@ -79,7 +91,17 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    context.subscriptions.push(treeView, changeListener, disposable, testDataCommand, populateTestDataCommand);
+    // Register a command to clear all data for testing auto-hide
+    const clearDataCommand = vscode.commands.registerCommand('focusSpace.clearAllData', async () => {
+        try {
+            await manager.clearAll();
+            vscode.window.showInformationMessage('Focus Space cleared! Panel should auto-hide if configured.');
+        } catch (error) {
+            vscode.window.showErrorMessage(`Error clearing data: ${error}`);
+        }
+    });
+
+    context.subscriptions.push(treeView, changeListener, configChangeListener, disposable, testDataCommand, populateTestDataCommand, clearDataCommand);
 }
 
 export function deactivate() {

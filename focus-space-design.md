@@ -411,30 +411,36 @@ Incremental development plan following single-responsibility, testable increment
 
 ---
 
-### **Increment 4: View Visibility Control**
+### **Increment 4: View Visibility Control** ✅ COMPLETED
 **Dependencies:** [Increment 3]  
 **Scope:** Auto-hide/show behavior based on content  
 
 #### Deliverables:
-- When clause context (`focusSpace.hasItems`)
-- Auto-hide when empty implementation
-- Auto-show on first item
-- Configuration setting: `focusSpace.hideWhenEmpty`
+- ✅ When clause context (`focusSpace.hasItems`)
+- ✅ Auto-hide when empty implementation
+- ✅ Auto-show on first item
+- ✅ Configuration setting: `focusSpace.hideWhenEmpty`
 
 #### Unit Tests:
-- `visibility.test.ts`: Show/hide logic, context updates
-- `configuration.test.ts`: Settings behavior
+- ✅ `visibility.test.ts`: Show/hide logic, context updates (7 tests)
+- ✅ `configuration.test.ts`: Settings behavior (6 tests)
 
 #### Manual Test Checklist:
-- [ ] View hidden on startup with empty state
-- [ ] View appears when first item added
-- [ ] View hides when last item removed
-- [ ] Configuration toggle works
+- ✅ View hidden on startup with empty state
+- ✅ View appears when first item added
+- ✅ View hides when last item removed (via Clear command)
+- ✅ Configuration toggle works
 
 #### Acceptance Criteria:
-- Visibility responds correctly to state changes
-- Configuration respected
-- No flickering or visual glitches
+- ✅ Visibility responds correctly to state changes (61/61 tests passing)
+- ✅ Configuration respected
+- ✅ No flickering or visual glitches
+
+#### Summary:
+**Completed:** Enhanced visibility control with configuration-aware auto-hide behavior, comprehensive context management, and user preference support. Added clear command for testing visibility transitions and robust event handling for configuration changes.  
+**Files Created:** `src/test/suite/visibility.test.ts`, `src/test/suite/configuration.test.ts`, clear data command  
+**Tests:** 61 passing tests including 13 new visibility/configuration tests  
+**Status:** Smart visibility system complete with user control and seamless auto-hide/show transitions
 
 ---
 

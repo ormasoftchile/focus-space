@@ -32,6 +32,10 @@
       {
         "command": "focusSpace.populateTestData",
         "title": "Populate Focus Space Test Data"
+      },
+      {
+        "command": "focusSpace.clearAllData",
+        "title": "Clear All Focus Space Data"
       }
     ],
     "views": {
@@ -44,6 +48,16 @@
           "when": "focusSpace.hasItems"
         }
       ]
+    },
+    "configuration": {
+      "title": "Focus Space",
+      "properties": {
+        "focusSpace.hideWhenEmpty": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically hide the Focus Space view when it contains no items"
+        }
+      }
     }
   },
   "scripts": {
