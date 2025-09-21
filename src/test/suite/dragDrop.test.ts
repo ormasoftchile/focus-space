@@ -33,7 +33,6 @@ suite('FocusSpaceDragAndDropController Test Suite', () => {
             storageUri: vscode.Uri.file('/test/storage'),
             secrets: {} as any,
             extension: {} as any,
-            languageModelAccessInformation: {} as any,
             asAbsolutePath: (relativePath: string) => `/test/path/${relativePath}`,
             storagePath: '/test/storage',
             globalStoragePath: '/test/global',

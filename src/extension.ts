@@ -2,8 +2,12 @@ import * as vscode from 'vscode';
 import { FocusSpaceManager } from './managers/focusSpaceManager';
 import { FocusSpaceTreeDataProvider } from './providers/focusSpaceTreeDataProvider';
 import { FocusSpaceDragAndDropController } from './controllers/focusSpaceDragAndDropController';
+import { ActiveEditorTracker } from './utils/activeEditorTracker';
 import { FocusSpaceRevealHandler } from './utils/focusSpaceRevealHandler';
+import { FileSystemWatcher } from './utils/fileSystemWatcher';
+import { configuration } from './utils/configurationManager';
 import { FocusEntry } from './models/focusEntry';
+import { TreeOperations } from './utils/treeOperations';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Focus Space extension is now active!');
@@ -29,10 +33,13 @@ export function activate(context: vscode.ExtensionContext) {
     revealHandler.setTreeView(treeView);
     revealHandler.setupRevealInterception();
     
+    // Initialize the file system watcher
+    const fileSystemWatcher = FileSystemWatcher.getInstance(manager);
+    
     // Update visibility context based on entries and configuration
     const updateVisibilityContext = () => {
         const hasItems = manager.getTopLevelEntries().length > 0;
-        const hideWhenEmpty = vscode.workspace.getConfiguration('focusSpace').get<boolean>('hideWhenEmpty', true);
+        const hideWhenEmpty = configuration.hideWhenEmpty;
         
         // Show view if: has items OR (no items but hideWhenEmpty is disabled)
         const shouldShow = hasItems || !hideWhenEmpty;
@@ -460,12 +467,21 @@ export function activate(context: vscode.ExtensionContext) {
         createSectionCommand,
         removeAllCommand,
         revealInExplorerCommand,
-        convertFolderToSectionCommand
+        convertFolderToSectionCommand,
+        fileSystemWatcher
     );
 }
 
 export async function deactivate() {
     console.log('Focus Space extension is deactivated');
+    
+    // Dispose file system watcher
+    try {
+        const fileSystemWatcher = FileSystemWatcher.getInstance();
+        fileSystemWatcher.dispose();
+    } catch (error) {
+        console.error('Error disposing file system watcher:', error);
+    }
     
     // Force save any pending changes before deactivation
     try {

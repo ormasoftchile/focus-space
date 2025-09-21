@@ -1,10 +1,12 @@
 import * as vscode from 'vscode';
 import { FocusSpaceManager } from '../managers/focusSpaceManager';
+import { configuration } from './configurationManager';
+
+type RevealBehavior = 'smart' | 'focus-space-only' | 'both' | 'disabled';
 
 /**
  * Configuration options for reveal behavior
  */
-export type RevealBehavior = 'focus-space-only' | 'both' | 'smart';
 
 /**
  * Handles smart reveal behavior for files in Focus Space.
@@ -30,8 +32,7 @@ export class FocusSpaceRevealHandler {
      * Get the current reveal behavior from configuration
      */
     private getRevealBehavior(): RevealBehavior {
-        const config = vscode.workspace.getConfiguration('focusSpace');
-        return config.get<RevealBehavior>('revealBehavior', 'smart');
+        return configuration.revealBehavior;
     }
 
     /**

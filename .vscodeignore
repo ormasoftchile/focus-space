@@ -1,11 +1,16 @@
 # VS Code Extension Testing
 
-# Ignore compiled output
-out/
+# Don't ignore compiled output - we need it!
+# out/
 *.vsix
 
 # Dependencies
 node_modules/
+
+# Source files - we only want compiled code in the package
+src/
+tsconfig.json
+.eslintrc.json
 
 # Runtime data
 *.log
@@ -17,3 +22,8 @@ npm-debug.log*
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Test files
+test-section-refresh.js
+verify-removal.js
+REMOVAL_FIX_SUMMARY.md

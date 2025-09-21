@@ -42,7 +42,6 @@ suite('External Drag & Drop Test Suite', () => {
 			extensionMode: vscode.ExtensionMode.Test,
 			secrets: {} as any,
 			extension: {} as any,
-			languageModelAccessInformation: {} as any
 		} as vscode.ExtensionContext;
 
 		// Create manager instance

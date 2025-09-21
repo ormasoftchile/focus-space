@@ -3,6 +3,7 @@ import * as path from 'path';
 import { FocusEntry, SerializableFocusEntry, FocusSpaceConfig } from '../models/focusEntry';
 import { TreeOperations } from '../utils/treeOperations';
 import { ActiveEditorTracker } from '../utils/activeEditorTracker';
+import { configuration } from '../utils/configurationManager';
 
 /**
  * Singleton manager for Focus Space
@@ -35,7 +36,10 @@ export class FocusSpaceManager {
     private readonly CONFIG_VERSION = '1.0.0';
     private isDirty: boolean = false;
     private saveTimeout: NodeJS.Timeout | undefined;
-    private readonly SAVE_DELAY = 500; // ms - debounce saves
+    // Save delay is dynamic based on configuration
+    private get SAVE_DELAY(): number {
+        return configuration.persistenceDebounceMs;
+    }
     private activeEditorTracker: ActiveEditorTracker;
     
     // Event emitter for tree data changes
@@ -106,6 +110,11 @@ export class FocusSpaceManager {
      * Add a new entry to the focus space
      */
     public async addEntry(uri: vscode.Uri, type: 'file' | 'folder' | 'section', parentId?: string, label?: string): Promise<FocusEntry> {
+        // Check if the file/folder should be excluded
+        if (type !== 'section' && configuration.isExcluded(uri.fsPath)) {
+            throw new Error(`File "${vscode.workspace.asRelativePath(uri)}" is excluded by configuration patterns`);
+        }
+
         const id = this.generateId();
         const relativePath = this.getRelativePath(uri);
         
@@ -151,6 +160,12 @@ export class FocusSpaceManager {
                 
                 for (const [name, fileType] of sortedContents) {
                     const childUri = vscode.Uri.joinPath(uri, name);
+                    
+                    // Skip excluded files/folders
+                    if (configuration.isExcluded(childUri.fsPath)) {
+                        continue;
+                    }
+                    
                     const childType = (fileType & vscode.FileType.Directory) ? 'folder' : 'file';
                     
                     // Create child entry directly without adding to root
@@ -582,5 +597,12 @@ export class FocusSpaceManager {
     public isActiveFocusFile(): boolean {
         const activeUri = this.getActiveFileUri();
         return activeUri ? this.hasEntry(activeUri) : false;
+    }
+
+    /**
+     * Manually trigger a refresh of the tree view
+     */
+    public refresh(): void {
+        this._onDidChange.fire();
     }
 }

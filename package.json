@@ -4,8 +4,12 @@
   "description": "Maintain a focused view of files and folders for large projects",
   "version": "0.0.1",
   "publisher": "your-publisher",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/example/focus-space"
+  },
   "engines": {
-    "vscode": "^1.93.0"
+    "vscode": "^1.74.0"
   },
   "categories": [
     "Other"
@@ -14,8 +18,7 @@
     "focus",
     "productivity",
     "files",
-    "workspace",
-    "copilot"
+    "workspace"
   ],
   "activationEvents": [
     "onStartupFinished"
@@ -165,11 +168,136 @@
           "type": "string",
           "enum": [
             "smart",
-            "focus-space-only", 
-            "both"
+            "focus-space-only",
+            "both",
+            "disabled"
           ],
           "default": "smart",
-          "description": "Control how files are revealed when opened. 'smart': reveal in Focus Space if present, otherwise Explorer; 'focus-space-only': only reveal in Focus Space; 'both': reveal in both Focus Space and Explorer"
+          "description": "Control how files are revealed when opened. 'smart': reveal in Focus Space if present, otherwise Explorer; 'focus-space-only': only reveal in Focus Space; 'both': reveal in both Focus Space and Explorer; 'disabled': never auto-reveal"
+        },
+        "focusSpace.showItemCount": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the number of items in the Focus Space view title"
+        },
+        "focusSpace.showFileIcons": {
+          "type": "boolean",
+          "default": true,
+          "description": "Display file type icons next to file names"
+        },
+        "focusSpace.sortOrder": {
+          "type": "string",
+          "enum": [
+            "manual",
+            "name",
+            "dateAdded",
+            "fileType"
+          ],
+          "default": "manual",
+          "description": "Default sort order for Focus Space items. 'manual': user-defined order; 'name': alphabetical; 'dateAdded': most recent first; 'fileType': grouped by extension"
+        },
+        "focusSpace.enableDragAndDrop": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow reordering items in Focus Space through drag and drop"
+        },
+        "focusSpace.allowExternalDrop": {
+          "type": "boolean",
+          "default": true,
+          "description": "Accept files dropped from outside VS Code (explorer, other apps)"
+        },
+        "focusSpace.autoRevealActiveFile": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically highlight and reveal the currently active file in Focus Space"
+        },
+        "focusSpace.removeDeletedFiles": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically remove files from Focus Space when they are deleted from the file system"
+        },
+        "focusSpace.updateMovedFiles": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically update file paths in Focus Space when files are moved or renamed"
+        },
+        "focusSpace.enableFileWatcher": {
+          "type": "boolean",
+          "default": true,
+          "description": "Monitor file system changes to keep Focus Space synchronized"
+        },
+        "focusSpace.maxFileSize": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Maximum file size in MB to handle without warnings"
+        },
+        "focusSpace.maxItemCount": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 10,
+          "maximum": 10000,
+          "description": "Maximum number of items in Focus Space before showing performance warnings"
+        },
+        "focusSpace.excludePatterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/node_modules/**",
+            "**/.git/**",
+            "**/dist/**",
+            "**/build/**",
+            "**/*.tmp",
+            "**/*.log"
+          ],
+          "description": "Glob patterns for files and folders to exclude from Focus Space operations"
+        },
+        "focusSpace.doubleClickBehavior": {
+          "type": "string",
+          "enum": [
+            "open",
+            "reveal",
+            "both"
+          ],
+          "default": "open",
+          "description": "Action when double-clicking items in Focus Space. 'open': open file in editor; 'reveal': reveal in Explorer; 'both': both actions"
+        },
+        "focusSpace.showInExplorerContext": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show 'Add to Focus Space' option in Explorer context menus"
+        },
+        "focusSpace.showInEditorTitle": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show 'Add to Focus Space' button in editor title bar"
+        },
+        "focusSpace.workspaceSpecificSettings": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow workspace-specific Focus Space configurations"
+        },
+        "focusSpace.autoSaveEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically save Focus Space changes"
+        },
+        "focusSpace.watcherDebounceMs": {
+          "type": "number",
+          "default": 100,
+          "minimum": 50,
+          "maximum": 5000,
+          "description": "Debounce delay in milliseconds for file system watcher events"
+        },
+        "focusSpace.persistenceDebounceMs": {
+          "type": "number",
+          "default": 500,
+          "minimum": 100,
+          "maximum": 10000,
+          "description": "Debounce delay in milliseconds for saving Focus Space data"
         }
       }
     }
@@ -186,7 +314,7 @@
     "@types/mocha": "^10.0.1",
     "@types/node": "20.x",
     "@types/sinon": "^17.0.4",
-    "@types/vscode": "^1.93.0",
+    "@types/vscode": "^1.74.0",
     "@typescript-eslint/eslint-plugin": "^6.4.1",
     "@typescript-eslint/parser": "^6.4.1",
     "@vscode/test-cli": "^0.0.4",

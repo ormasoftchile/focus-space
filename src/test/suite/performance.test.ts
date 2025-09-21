@@ -35,7 +35,6 @@ suite('Performance Optimization Tests', () => {
             extension: {} as any,
             secrets: {} as any,
             extensionMode: vscode.ExtensionMode.Test,
-            languageModelAccessInformation: {} as any
         };
     };
 

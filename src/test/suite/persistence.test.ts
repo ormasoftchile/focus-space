@@ -32,7 +32,6 @@ suite('FocusSpace Persistence Tests', () => {
             secrets: undefined as any,
             environmentVariableCollection: undefined as any,
             extension: undefined as any,
-            languageModelAccessInformation: undefined as any
         };
     };
 
