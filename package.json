@@ -17,7 +17,9 @@
     "workspace",
     "copilot"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -36,6 +38,22 @@
       {
         "command": "focusSpace.clearAllData",
         "title": "Clear All Focus Space Data"
+      },
+      {
+        "command": "focusSpace.addToFocusSpace",
+        "title": "Add to Focus Space"
+      },
+      {
+        "command": "focusSpace.addFilesToFocusSpace",
+        "title": "Focus Space: Add Files..."
+      },
+      {
+        "command": "focusSpace.removeFromFocusSpace",
+        "title": "Remove from Focus Space"
+      },
+      {
+        "command": "focusSpace.createSection",
+        "title": "Create Section"
       }
     ],
     "views": {
@@ -46,6 +64,34 @@
           "icon": "$(target)",
           "contextualTitle": "Focus Space",
           "when": "focusSpace.hasItems"
+        }
+      ]
+    },
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "focusSpace.addToFocusSpace"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "focusSpace.addToFocusSpace",
+          "when": "resourceScheme == file",
+          "group": "1_modification"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "focusSpace.createSection",
+          "when": "view == focusSpace",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "focusSpace.removeFromFocusSpace",
+          "when": "view == focusSpace",
+          "group": "inline"
         }
       ]
     },

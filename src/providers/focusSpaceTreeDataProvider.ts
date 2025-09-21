@@ -46,6 +46,9 @@ export class FocusSpaceTreeDataProvider implements vscode.TreeDataProvider<Focus
         // Set context value for context menu
         treeItem.contextValue = element.type;
 
+        // Store the entry ID in the TreeItem for commands to access
+        (treeItem as any).entryId = element.id;
+
         // Add command for files to open them
         if (element.type === 'file') {
             treeItem.command = {

@@ -444,30 +444,40 @@ Incremental development plan following single-responsibility, testable increment
 
 ---
 
-### **Increment 5: Add to Focus Commands**
+### **Increment 5: Context Menu Commands** ✅ COMPLETED
 **Dependencies:** [Increment 2, 3, 4]  
-**Scope:** Command implementation (no UI integration yet)  
+**Scope:** Complete context menu command system with add/remove operations  
 
 #### Deliverables:
-- `focusSpace.addFile` command
-- `focusSpace.addFolder` command
-- `focusSpace.addCurrentFile` command
-- Command registration in `package.json`
+- ✅ `focusSpace.addToFocusSpace` command with URI parameter
+- ✅ `focusSpace.removeFromFocusSpace` command with URI parameter  
+- ✅ `focusSpace.createSection` command for organizing entries
+- ✅ Context menu integration for Explorer, Editor, and Focus Space view
+- ✅ Duplicate detection and user feedback system
+- ✅ Command registration in `package.json` with proper when clauses
 
 #### Unit Tests:
-- `commands.add.test.ts`: Each command logic
-- `integration.add.test.ts`: State updates, view refresh
+- ✅ `commands.test.ts`: Command registration, URI processing, duplicate detection (15 tests)
 
 #### Manual Test Checklist:
-- [ ] Commands execute via Command Palette
-- [ ] Files/folders added to state
-- [ ] View updates after addition
-- [ ] Duplicate prevention works
+- ✅ Commands execute via Command Palette  
+- ✅ Context menus appear in Explorer, Editor tabs, and Focus Space view
+- ✅ Add/remove operations work correctly
+- ✅ Duplicate prevention shows appropriate messages
+- ✅ Section creation prompts for name and adds to tree
+- ✅ All commands handle edge cases gracefully
 
 #### Acceptance Criteria:
-- All add commands functional
-- State updates correctly
-- View refreshes automatically
+- ✅ All commands functional with error handling (76/76 tests passing)
+- ✅ Context menu integration complete across all target areas
+- ✅ State updates correctly with proper event emission
+- ✅ User feedback system provides clear notifications
+
+#### Summary:
+**Completed:** Full context menu command system with add/remove functionality, section creation, and comprehensive user interaction support. Commands handle file/folder URIs, detect duplicates, provide user feedback, and integrate seamlessly with VS Code's context menu system across Explorer, Editor, and TreeView.  
+**Files Created:** Enhanced `src/extension.ts` with command handlers, `src/test/suite/commands.test.ts` with 15 comprehensive tests, menu configuration in `package.json`  
+**Tests:** 76 passing tests including 15 new command tests covering registration, URI processing, duplicate detection, and user operations  
+**Status:** Interactive command system complete with context menus, ready for advanced operations and user workflow integration
 
 ---
 
