@@ -1,8 +1,4 @@
-# VS Code Extension Testing
-
-# Don't ignore compiled output - we need it!
-# out/
-*.vsix
+# VS Code Extension Package Configuration
 
 # Dependencies
 node_modules/
@@ -12,18 +8,22 @@ src/
 tsconfig.json
 .eslintrc.json
 
+# Documentation and development files
+docs/
+CONTRIBUTING.md
+CHANGELOG.md
+
 # Runtime data
 *.log
 npm-debug.log*
 
 # IDE files
 .vscode-test/
+.vscode/
 
 # OS generated files
 .DS_Store
 Thumbs.db
 
-# Test files
-test-section-refresh.js
-verify-removal.js
-REMOVAL_FIX_SUMMARY.md
+# Build artifacts
+*.vsix
