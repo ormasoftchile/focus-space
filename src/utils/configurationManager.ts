@@ -137,6 +137,22 @@ export class ConfigurationManager {
     }
 
     // =============================================================================
+    // BUFFER MANAGEMENT SETTINGS  
+    // =============================================================================
+
+    public get closeNonFocusBuffersConfirmBeforeClose(): boolean {
+        return this.get<boolean>('closeNonFocusBuffers.confirmBeforeClose', true);
+    }
+
+    public get closeNonFocusBuffersPreserveUnsaved(): boolean {
+        return this.get<boolean>('closeNonFocusBuffers.preserveUnsaved', true);
+    }
+
+    public get closeNonFocusBuffersScope(): 'currentGroup' | 'allGroups' {
+        return this.get<'currentGroup' | 'allGroups'>('closeNonFocusBuffers.scope', 'currentGroup');
+    }
+
+    // =============================================================================
     // UTILITY METHODS
     // =============================================================================
 

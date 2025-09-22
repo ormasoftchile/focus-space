@@ -277,7 +277,7 @@ Right-click on Focus Space item:
 
 ## Buffer Management
 
-### 9. **Close Non-Focus Buffers**
+### 9. **Close Non-Focus Buffers** ✅ COMPLETED
 A powerful productivity feature to manage editor buffer clutter by closing all open editor tabs that are not included in the current Focus Space.
 
 **Command**: `focusSpace.closeNonFocusBuffers`
@@ -298,11 +298,25 @@ During development sessions, many editor buffers accumulate from navigation, sea
 }
 ```
 
-**Implementation**:
-- Access via command palette: "Focus Space: Close Non-Focus Buffers"
-- Optional toolbar button in Focus Space view
-- Keyboard shortcut: `Cmd+K Cmd+F` (or configurable)
-- Integration with VS Code's `workbench.action.closeOtherEditors` API
+**Implementation** ✅ COMPLETED:
+- ✅ Access via editor tab context menu: "Close Non-Focus" 
+- ✅ Access via command palette: "Focus Space: Close Non-Focus Buffers"
+- ✅ Configuration integration with ConfigurationManager
+- ✅ Smart filtering of tabs with/without URIs
+- ✅ Preserves unsaved files when configured
+- ✅ Supports both current group and all groups scope
+- ✅ Comprehensive confirmation dialog with user feedback
+- ✅ Integration with VS Code's tabGroups.close API
+- ✅ Error handling and graceful fallbacks
+- ✅ Comprehensive test suite with edge cases
+
+**Files Modified**:
+- `package.json`: Added command, menu contribution, and configuration settings
+- `src/extension.ts`: Command implementation with proper error handling
+- `src/utils/configurationManager.ts`: Added buffer management configuration accessors
+- `src/test/suite/closeNonFocusBuffers.test.ts`: Comprehensive test coverage
+
+**Menu Integration**: Available in editor tab context menu when Focus Space has items (`focusSpace.hasItems` context).
 
 ## Implementation Plan
 

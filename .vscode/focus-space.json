@@ -1,0 +1,39 @@
+{
+  "version": "1.0.0",
+  "entries": [
+    {
+      "id": "focus-1758502818496-z1zxbuk0b",
+      "uriString": "file:///Volumes/Projects/tmp/focusfiles-extension/src/models",
+      "type": "folder",
+      "children": [
+        {
+          "id": "focus-1758502818504-wid4d8527",
+          "uriString": "file:///Volumes/Projects/tmp/focusfiles-extension/src/models/focusEntry.ts",
+          "type": "file",
+          "label": "focusEntry.ts",
+          "metadata": {
+            "dateAdded": 1758502818504,
+            "relativePath": "src/models/focusEntry.ts",
+            "order": 0
+          }
+        }
+      ],
+      "metadata": {
+        "dateAdded": 1758502818496,
+        "relativePath": "src/models",
+        "order": 0
+      }
+    },
+    {
+      "id": "focus-1758502868823-429ha8yon",
+      "uriString": "file:///Volumes/Projects/tmp/focusfiles-extension/.gitignore",
+      "type": "file",
+      "metadata": {
+        "dateAdded": 1758502868823,
+        "relativePath": ".gitignore",
+        "order": 2
+      }
+    }
+  ],
+  "lastModified": 1758502869328
+}

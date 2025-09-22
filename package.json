@@ -69,6 +69,10 @@
       {
         "command": "focusSpace.createSection",
         "title": "Create Section"
+      },
+      {
+        "command": "focusSpace.closeNonFocusBuffers",
+        "title": "Close Non-Focus"
       }
     ],
     "views": {
@@ -93,6 +97,11 @@
           "command": "focusSpace.addToFocusSpace",
           "when": "resourceScheme == file",
           "group": "1_modification"
+        },
+        {
+          "command": "focusSpace.closeNonFocusBuffers",
+          "when": "focusSpace.hasItems",
+          "group": "1_close"
         }
       ],
       "editor/title": [
@@ -298,6 +307,25 @@
           "minimum": 100,
           "maximum": 10000,
           "description": "Debounce delay in milliseconds for saving Focus Space data"
+        },
+        "focusSpace.closeNonFocusBuffers.confirmBeforeClose": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show confirmation dialog before closing non-focus editors"
+        },
+        "focusSpace.closeNonFocusBuffers.preserveUnsaved": {
+          "type": "boolean",
+          "default": true,
+          "description": "Preserve unsaved files when closing non-focus editors (prompts for save)"
+        },
+        "focusSpace.closeNonFocusBuffers.scope": {
+          "type": "string",
+          "enum": [
+            "currentGroup",
+            "allGroups"
+          ],
+          "default": "currentGroup",
+          "description": "Scope for closing non-focus editors. 'currentGroup': only current editor group; 'allGroups': all editor groups"
         }
       }
     }

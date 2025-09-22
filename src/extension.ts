@@ -452,6 +452,92 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
+    const closeNonFocusBuffersCommand = vscode.commands.registerCommand('focusSpace.closeNonFocusBuffers', async () => {
+        try {
+            // Get configuration settings
+            const confirmBeforeClose = configuration.closeNonFocusBuffersConfirmBeforeClose;
+            const preserveUnsaved = configuration.closeNonFocusBuffersPreserveUnsaved;
+            const scope = configuration.closeNonFocusBuffersScope;
+
+            // Show confirmation dialog if enabled
+            if (confirmBeforeClose) {
+                const scopeText = scope === 'allGroups' ? 'all editor groups' : 'the current editor group';
+                const response = await vscode.window.showWarningMessage(
+                    `Close all editors except those in Focus Space from ${scopeText}?`,
+                    { modal: true },
+                    'Close',
+                    'Cancel'
+                );
+                
+                if (response !== 'Close') {
+                    return;
+                }
+            }
+
+            // Get all Focus Space file URIs for comparison
+            const allFocusEntries = TreeOperations.flatten(manager.getTopLevelEntries());
+            const focusFileUris = new Set(
+                allFocusEntries
+                    .filter((entry: FocusEntry) => entry.type === 'file')
+                    .map((entry: FocusEntry) => entry.uri.toString())
+            );
+
+            // Get all open editors based on scope
+            const editorGroups = scope === 'allGroups' 
+                ? vscode.window.tabGroups.all
+                : [vscode.window.tabGroups.activeTabGroup];
+
+            let closedCount = 0;
+            let preservedCount = 0;
+
+            // Process each editor group
+            for (const group of editorGroups) {
+                // Get tabs that are NOT in Focus Space
+                const tabsToClose = group.tabs.filter((tab: vscode.Tab) => {
+                    // Check if tab has a valid URI input
+                    if (!tab.input || typeof tab.input !== 'object' || !('uri' in tab.input)) {
+                        return false; // Skip tabs without URI (like welcome, settings, etc.)
+                    }
+                    
+                    const tabUri = (tab.input as { uri: vscode.Uri }).uri;
+                    return !focusFileUris.has(tabUri.toString());
+                });
+
+                // Close non-focus tabs
+                for (const tab of tabsToClose) {
+                    try {
+                        // Check if tab has unsaved changes
+                        if (preserveUnsaved && tab.isDirty) {
+                            preservedCount++;
+                            continue; // Skip unsaved files if preserveUnsaved is true
+                        }
+
+                        // Close the tab
+                        await vscode.window.tabGroups.close(tab);
+                        closedCount++;
+                    } catch (error) {
+                        console.error('Error closing tab:', error);
+                    }
+                }
+            }
+
+            // Show result message
+            if (closedCount > 0 || preservedCount > 0) {
+                let message = `Closed ${closedCount} editor(s)`;
+                if (preservedCount > 0) {
+                    message += `, preserved ${preservedCount} unsaved editor(s)`;
+                }
+                message += '.';
+                vscode.window.showInformationMessage(message);
+            } else {
+                vscode.window.showInformationMessage('No editors to close (all open editors are in Focus Space).');
+            }
+
+        } catch (error) {
+            vscode.window.showErrorMessage(`Error closing non-focus editors: ${error}`);
+        }
+    });
+
     context.subscriptions.push(
         treeView, 
         changeListener, 
@@ -468,6 +554,7 @@ export function activate(context: vscode.ExtensionContext) {
         removeAllCommand,
         revealInExplorerCommand,
         convertFolderToSectionCommand,
+        closeNonFocusBuffersCommand,
         fileSystemWatcher
     );
 }
