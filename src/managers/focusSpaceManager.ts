@@ -414,9 +414,14 @@ export class FocusSpaceManager {
             
             // Build cache for better performance with loaded data
             TreeOperations.buildCache(this.rootEntries);
+            
+            // Fire change event to update UI
+            this._onDidChange.fire();
+            
+            console.log(`Focus Space: Loaded ${this.rootEntries.length} entries from storage`);
         } catch (error) {
             // File doesn't exist or is corrupt - start fresh
-            console.log('Focus Space: Starting with empty state');
+            console.log('Focus Space: Starting with empty state -', error);
             TreeOperations.clearCache();
         }
     }

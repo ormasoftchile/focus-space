@@ -15,13 +15,19 @@ export function activate(context: vscode.ExtensionContext) {
     // Initialize the FocusSpaceManager
     const manager = FocusSpaceManager.getInstance(context);
     
-    // Load persisted state
-    manager.loadState().catch(error => {
-        console.error('Failed to load Focus Space state:', error);
-    });
-    
     // Initialize the TreeDataProvider
     const treeDataProvider = new FocusSpaceTreeDataProvider(manager);
+    
+    // Load persisted state and refresh UI
+    manager.loadState().then(() => {
+        console.log('Focus Space: State loaded successfully');
+        const entries = manager.getTopLevelEntries();
+        console.log(`Focus Space: Found ${entries.length} top-level entries`);
+        treeDataProvider.refresh();
+        updateVisibilityContext(); // Ensure view becomes visible
+    }).catch(error => {
+        console.error('Failed to load Focus Space state:', error);
+    });
     
     // Initialize the Drag and Drop Controller
     const dragAndDropController = new FocusSpaceDragAndDropController(manager);
