@@ -15,6 +15,11 @@ export function activate(context: vscode.ExtensionContext) {
     // Initialize the FocusSpaceManager
     const manager = FocusSpaceManager.getInstance(context);
     
+    // Load persisted state
+    manager.loadState().catch(error => {
+        console.error('Failed to load Focus Space state:', error);
+    });
+    
     // Initialize the TreeDataProvider
     const treeDataProvider = new FocusSpaceTreeDataProvider(manager);
     

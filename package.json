@@ -3,7 +3,7 @@
   "displayName": "Focus Space",
   "description": "Maintain a focused view of files and folders for large projects",
   "version": "0.0.1",
-  "publisher": "your-publisher",
+  "publisher": "focus-space",
   "repository": {
     "type": "git",
     "url": "https://github.com/example/focus-space"
