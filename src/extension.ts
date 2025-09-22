@@ -464,7 +464,6 @@ export function activate(context: vscode.ExtensionContext) {
                 const scopeText = scope === 'allGroups' ? 'all editor groups' : 'the current editor group';
                 const response = await vscode.window.showWarningMessage(
                     `Close all editors except those in Focus Space from ${scopeText}?`,
-                    { modal: true },
                     'Close',
                     'Cancel'
                 );
