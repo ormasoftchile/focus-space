@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import { FocusSpaceManager } from '../../managers/focusSpaceManager';
 import { FileSystemWatcher } from '../../utils/fileSystemWatcher';
+import { configuration } from '../../utils/configurationManager';
 
 suite('FileSystemWatcher Tests', () => {
     let manager: FocusSpaceManager;
@@ -114,6 +115,9 @@ suite('FileSystemWatcher Tests', () => {
             const testUri = vscode.Uri.file('/test/file.ts');
             const entry = await manager.addEntry(testUri, 'file');
 
+            // Mock configuration to not auto-remove deleted files so user is prompted
+            const configStub = sandbox.stub(configuration, 'removeDeletedFiles').get(() => false);
+
             // Mock user response to deletion
             const showWarningMessageStub = sandbox.stub(vscode.window, 'showWarningMessage') as sinon.SinonStub;
             showWarningMessageStub.resolves('Remove');
@@ -138,6 +142,9 @@ suite('FileSystemWatcher Tests', () => {
             // Add a test entry
             const testUri = vscode.Uri.file('/test/file.ts');
             const entry = await manager.addEntry(testUri, 'file');
+
+            // Mock configuration to not auto-remove deleted files so user is prompted
+            const configStub = sandbox.stub(configuration, 'removeDeletedFiles').get(() => false);
 
             // Mock user response to keep file
             const showWarningMessageStub = sandbox.stub(vscode.window, 'showWarningMessage') as sinon.SinonStub;

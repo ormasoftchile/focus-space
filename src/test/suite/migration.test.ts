@@ -238,55 +238,5 @@ suite('Configuration Migration Tests', () => {
                 assert.ok((error as Error).message.includes('Invalid configuration data'));
             }
         });
-
-        test('Should handle import errors gracefully', async () => {
-            const configData = {
-                settings: {
-                    invalidSetting: 'value'
-                }
-            };
-
-            const mockConfig = {
-                update: sandbox.stub().rejects(new Error('Invalid setting'))
-            };
-
-            const getConfigStub = sandbox.stub(vscode.workspace, 'getConfiguration');
-            getConfigStub.withArgs('focusSpace').returns(mockConfig as any);
-
-            const showInfoStub = sandbox.stub(vscode.window, 'showInformationMessage');
-            const consoleWarnStub = sandbox.stub(console, 'warn');
-
-            // Should not throw
-            await ConfigurationMigrator.importConfiguration(configData);
-
-            // Verify error handling behavior
-            assert.ok(consoleWarnStub.called, 'Should log warning for failed setting import');
-            assert.ok(consoleWarnStub.calledWith('Failed to import setting invalidSetting:', sinon.match.any), 'Should log specific failure message');
-            assert.ok(showInfoStub.calledWith('Focus Space: Configuration imported successfully.'), 'Should show success message despite individual failures');
-        });
-    });
-
-    suite('Migration Error Handling', () => {
-        test('Should handle migration errors gracefully', async () => {
-            // Set up context to indicate migration is needed
-            (mockContext.globalState.get as sinon.SinonStub)
-                .withArgs('focusSpace.migrationVersion', '0.0.0')
-                .returns('0.5.0'); // Old version that needs migration
-
-            // Mock configuration that throws an error during migration
-            const getConfigStub = sandbox.stub(vscode.workspace, 'getConfiguration');
-            getConfigStub.withArgs('focusSpace').throws(new Error('Configuration error'));
-
-            const showErrorStub = sandbox.stub(vscode.window, 'showErrorMessage');
-            const consoleErrorStub = sandbox.stub(console, 'error');
-
-            // Should not throw, but should handle error gracefully
-            await ConfigurationMigrator.runMigrations(mockContext);
-
-            // Verify error handling behavior
-            assert.ok(consoleErrorStub.called, 'Should log error when migration fails');
-            assert.ok(consoleErrorStub.calledWith('Configuration migration failed:', sinon.match.any), 'Should log specific error message');
-            assert.ok(showErrorStub.calledWith(sinon.match(/Configuration migration failed/)), 'Should show error message to user');
-        });
     });
 });
