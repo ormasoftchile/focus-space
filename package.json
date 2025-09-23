@@ -2,11 +2,12 @@
   "name": "focus-space",
   "displayName": "Focus Space",
   "description": "Maintain a focused view of files and folders for large projects",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "publisher": "focus-space",
+  "icon": "icons/focus-space-icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/example/focus-space"
+    "url": "https://github.com/ormasoftchile/focus-space.git"
   },
   "engines": {
     "vscode": "^1.74.0"
@@ -44,7 +45,8 @@
       },
       {
         "command": "focusSpace.addToFocusSpace",
-        "title": "Add to Focus Space"
+        "title": "Add to Focus Space",
+        "icon": "$(target)"
       },
       {
         "command": "focusSpace.addFilesToFocusSpace",
@@ -52,11 +54,13 @@
       },
       {
         "command": "focusSpace.removeFromFocusSpace",
-        "title": "Remove from Focus Space"
+        "title": "Remove from Focus Space",
+        "icon": "$(close)"
       },
       {
         "command": "focusSpace.removeAll",
-        "title": "Remove All from Focus Space"
+        "title": "Remove All from Focus Space",
+        "icon": "$(clear-all)"
       },
       {
         "command": "focusSpace.revealInExplorer",

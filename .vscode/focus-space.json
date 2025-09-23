@@ -32,7 +32,17 @@
         "dateAdded": 1758507377555,
         "order": 2
       }
+    },
+    {
+      "id": "focus-1758589177872-l568s6q46",
+      "uriString": "file:///Volumes/Projects/tmp/focusfiles-extension/src/extension.ts",
+      "type": "file",
+      "metadata": {
+        "dateAdded": 1758589177872,
+        "relativePath": "src/extension.ts",
+        "order": 3
+      }
     }
   ],
-  "lastModified": 1758507395006
+  "lastModified": 1758589178373
 }

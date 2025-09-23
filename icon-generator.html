@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Focus Space Icon Generator</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 600px;
+        }
+        .icon-preview {
+            border: 1px solid #ddd;
+            margin: 20px 0;
+            display: inline-block;
+            background: #f9f9f9;
+            padding: 10px;
+        }
+        button {
+            background: #007ACC;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #005a9e;
+        }
+        .instructions {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #007ACC;
+            margin: 20px 0;
+        }
+        .size-options {
+            margin: 20px 0;
+        }
+        .size-options label {
+            margin-right: 15px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Focus Space Extension Icon Generator</h1>
+        
+        <div class="instructions">
+            <h3>Instructions:</h3>
+            <ol>
+                <li>Select the desired icon size below</li>
+                <li>Right-click on the icon and "Save image as..." or "Copy image"</li>
+                <li>Save as <code>focus-space-icon.png</code> in the <code>icons/</code> folder</li>
+                <li>The icon will be automatically included in your VS Code extension</li>
+            </ol>
+        </div>
+
+        <div class="size-options">
+            <label><input type="radio" name="size" value="128" checked> 128x128 (Extension Icon)</label>
+            <label><input type="radio" name="size" value="64"> 64x64</label>
+            <label><input type="radio" name="size" value="32"> 32x32</label>
+        </div>
+
+        <div class="icon-preview">
+            <svg id="focusIcon" width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+                <!-- Background circle -->
+                <circle cx="64" cy="64" r="60" fill="#007ACC" stroke="none"/>
+                
+                <!-- Outer ring -->
+                <circle cx="64" cy="64" r="48" fill="none" stroke="#ffffff" stroke-width="3"/>
+                
+                <!-- Middle ring -->
+                <circle cx="64" cy="64" r="36" fill="none" stroke="#ffffff" stroke-width="2.5"/>
+                
+                <!-- Inner ring -->
+                <circle cx="64" cy="64" r="24" fill="none" stroke="#ffffff" stroke-width="2"/>
+                
+                <!-- Center target dot -->
+                <circle cx="64" cy="64" r="8" fill="#ffffff"/>
+                
+                <!-- Focus crosshairs -->
+                <line x1="64" y1="16" x2="64" y2="32" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+                <line x1="64" y1="96" x2="64" y2="112" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+                <line x1="16" y1="64" x2="32" y2="64" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+                <line x1="96" y1="64" x2="112" y2="64" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+        </div>
+
+        <button onclick="downloadIcon()">Download as PNG</button>
+        <button onclick="copyToClipboard()">Copy SVG Code</button>
+
+        <div class="instructions">
+            <h3>Alternative:</h3>
+            <p>You can also use online SVG to PNG converters like:</p>
+            <ul>
+                <li><a href="https://cloudconvert.com/svg-to-png" target="_blank">CloudConvert</a></li>
+                <li><a href="https://convertio.co/svg-png/" target="_blank">Convertio</a></li>
+                <li><a href="https://svgtopng.com/" target="_blank">SVG to PNG</a></li>
+            </ul>
+            <p>Upload the <code>focus-space-icon.svg</code> file and convert to 128x128 PNG.</p>
+        </div>
+    </div>
+
+    <script>
+        // Handle size selection
+        document.querySelectorAll('input[name="size"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const size = this.value;
+                const icon = document.getElementById('focusIcon');
+                icon.setAttribute('width', size);
+                icon.setAttribute('height', size);
+            });
+        });
+
+        function downloadIcon() {
+            const svg = document.getElementById('focusIcon');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const size = parseInt(document.querySelector('input[name="size"]:checked').value);
+            
+            canvas.width = size;
+            canvas.height = size;
+            
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+            const url = URL.createObjectURL(svgBlob);
+            
+            const img = new Image();
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0, size, size);
+                canvas.toBlob(function(blob) {
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = 'focus-space-icon.png';
+                    a.click();
+                });
+            };
+            img.src = url;
+        }
+
+        function copyToClipboard() {
+            const svgElement = document.getElementById('focusIcon');
+            const svgString = new XMLSerializer().serializeToString(svgElement);
+            navigator.clipboard.writeText(svgString).then(() => {
+                alert('SVG code copied to clipboard!');
+            });
+        }
+    </script>
+</body>
+</html>
