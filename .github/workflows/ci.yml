@@ -52,17 +52,17 @@ jobs:
           sudo chmod -R 755 /test /project
           echo "Test environment setup completed"
 
-      - name: Run tests
-        run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            xvfb-run -a npm test
-          else
-            npm test
-          fi
+      - name: Run tests (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm test
+
+      - name: Run tests (Windows/macOS)
+        if: runner.os != 'Linux'
+        run: npm test
 
       - name: Package extension (test build)
-        run: |
-          npx @vscode/vsce package --out test-build.vsix
+        if: matrix.os == 'ubuntu-latest' && matrix.node-version == 20
+        run: npx @vscode/vsce package --out test-build.vsix
 
       - name: Upload test package
         uses: actions/upload-artifact@v4
