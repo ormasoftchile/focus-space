@@ -189,11 +189,15 @@ suite('Folder Display and Management', () => {
 
     test('Should handle real folder children correctly', async () => {
         // In the new system, folder children are real entries, not temporary ones
-        const childUri = vscode.Uri.file('/test/src/child.ts');
-        const parentUri = vscode.Uri.file('/test/src');
+        // Use a unique folder path that won't conflict with filesystem contents
+        const parentUri = vscode.Uri.file('/test/unique-test-folder-' + Date.now());
+        const childUri = vscode.Uri.file(parentUri.fsPath + '/child.ts');
         
-        // Add parent folder first
+        // Add parent folder first (this will create an empty folder entry since the path doesn't exist)
         const parentEntry = await manager.addEntry(parentUri, 'folder', undefined, 'Source Folder');
+        
+        // Since the folder doesn't exist on filesystem, it should have empty children initially
+        assert.strictEqual(parentEntry.children?.length, 0);
         
         // Add child as real entry under parent
         const childEntry = await manager.addEntry(childUri, 'file', parentEntry.id);
