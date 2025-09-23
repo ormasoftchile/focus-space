@@ -9,6 +9,10 @@
     "type": "git",
     "url": "https://github.com/ormasoftchile/focus-space.git"
   },
+  "bugs": {
+    "url": "https://github.com/ormasoftchile/focus-space/issues"
+  },
+  "homepage": "https://github.com/ormasoftchile/focus-space#readme",
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -77,6 +81,18 @@
       {
         "command": "focusSpace.closeNonFocusBuffers",
         "title": "Close Non-Focus"
+      },
+      {
+        "command": "focusSpace.testCopilotCommands",
+        "title": "Focus Space: Test Copilot Commands"
+      },
+      {
+        "command": "focusSpace.testWorkspaceFile",
+        "title": "Focus Space: Test Workspace File Method"
+      },
+      {
+        "command": "focusSpace.testClipboard",
+        "title": "Focus Space: Test Clipboard Method"
       }
     ],
     "views": {
@@ -125,6 +141,21 @@
           "command": "focusSpace.removeAll",
           "when": "view == focusSpace",
           "group": "navigation"
+        },
+        {
+          "command": "focusSpace.testCopilotCommands",
+          "when": "view == focusSpace",
+          "group": "copilot@1"
+        },
+        {
+          "command": "focusSpace.testWorkspaceFile",
+          "when": "view == focusSpace",
+          "group": "copilot@2"
+        },
+        {
+          "command": "focusSpace.testClipboard",
+          "when": "view == focusSpace",
+          "group": "copilot@3"
         }
       ],
       "view/item/context": [
@@ -148,8 +179,8 @@
     "keybindings": [
       {
         "command": "focusSpace.addToFocusSpace",
-        "key": "ctrl+shift+f",
-        "mac": "cmd+shift+f",
+        "key": "ctrl+alt+f",
+        "mac": "cmd+alt+f",
         "when": "editorFocus"
       },
       {
