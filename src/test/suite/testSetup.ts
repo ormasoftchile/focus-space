@@ -10,8 +10,37 @@ import * as vscode from 'vscode';
 export function setupTestEnvironment(): void {
     console.log('Setting up test environment...');
     
-    // Create required test directories (absolute paths)
+    // Use a reliable test directory in system temp
+    const testRoot = path.join(os.tmpdir(), 'focus-space-test');
+    
+    // Create required test directories (relative to test root)
     const testDirs = [
+        'test',
+        'test/folder',
+        'test/src',
+        'test/empty-folder',
+        'test/project',
+        'test/my-project',
+        'test/auto-convert-folder',
+        'test/convert-folder',
+        'test/reveal-folder',
+        'project/src'
+    ];
+
+    // Create test directories in temp location
+    testDirs.forEach(dirName => {
+        try {
+            const fullPath = path.join(testRoot, dirName);
+            if (!fs.existsSync(fullPath)) {
+                fs.mkdirSync(fullPath, { recursive: true });
+            }
+        } catch (error) {
+            console.warn(`Could not create test directory ${dirName}:`, error);
+        }
+    });
+
+    // Also create the absolute paths for backwards compatibility with existing tests
+    const absoluteDirs = [
         '/test',
         '/test/folder',
         '/test/src',
@@ -24,26 +53,30 @@ export function setupTestEnvironment(): void {
         '/project/src'
     ];
 
-    // Try to create absolute paths first, fallback to temp directory
-    testDirs.forEach(dir => {
+    absoluteDirs.forEach(dir => {
         try {
             if (!fs.existsSync(dir)) {
                 fs.mkdirSync(dir, { recursive: true });
             }
         } catch (error) {
-            // If absolute path creation fails (permissions), try in temp directory
+            // If absolute path creation fails, create symbolic link to temp directory
             try {
-                const tempDir = path.join(os.tmpdir(), 'focus-space-test', dir.replace(/^\//, ''));
-                if (!fs.existsSync(tempDir)) {
-                    fs.mkdirSync(tempDir, { recursive: true });
+                const relativePath = dir.replace(/^\//, '');
+                const targetPath = path.join(testRoot, relativePath);
+                if (fs.existsSync(targetPath) && !fs.existsSync(dir)) {
+                    const parentDir = path.dirname(dir);
+                    if (!fs.existsSync(parentDir)) {
+                        fs.mkdirSync(parentDir, { recursive: true });
+                    }
+                    fs.symlinkSync(targetPath, dir, 'dir');
                 }
-            } catch (tempError) {
-                console.warn(`Could not create test directory ${dir}:`, tempError);
+            } catch (linkError) {
+                console.warn(`Could not create test directory ${dir}:`, error);
             }
         }
     });
 
-    // Create required test files (absolute paths)
+    // Create required test files
     const testFiles = [
         { path: '/test/file.ts', content: 'export const test = "test";' },
         { path: '/test/renamed.ts', content: 'export const renamed = "renamed";' },
@@ -65,9 +98,9 @@ export function setupTestEnvironment(): void {
                 fs.writeFileSync(filePath, content);
             }
         } catch (error) {
-            // If absolute path creation fails, try in temp directory
+            // Create in temp directory as fallback
             try {
-                const tempFilePath = path.join(os.tmpdir(), 'focus-space-test', filePath.replace(/^\//, ''));
+                const tempFilePath = path.join(testRoot, filePath.replace(/^\//, ''));
                 const tempDir = path.dirname(tempFilePath);
                 if (!fs.existsSync(tempDir)) {
                     fs.mkdirSync(tempDir, { recursive: true });
@@ -104,7 +137,7 @@ export function setupTestEnvironment(): void {
             }
         } catch (error) {
             try {
-                const tempFilePath = path.join(os.tmpdir(), 'focus-space-test', filePath.replace(/^\//, ''));
+                const tempFilePath = path.join(testRoot, filePath.replace(/^\//, ''));
                 const tempDir = path.dirname(tempFilePath);
                 if (!fs.existsSync(tempDir)) {
                     fs.mkdirSync(tempDir, { recursive: true });
@@ -139,9 +172,10 @@ export function setupTestEnvironment(): void {
 export function cleanupTestEnvironment(): void {
     console.log('Cleaning up test environment...');
     
-    // Optionally clean up created test files and directories
+    // Clean up absolute test directories if they exist
     const testDirs = [
-        '/test'
+        '/test',
+        '/project'
     ];
 
     testDirs.forEach(dir => {
@@ -155,14 +189,30 @@ export function cleanupTestEnvironment(): void {
         }
     });
 
+    // Clean up temp directory
+    try {
+        const testRoot = path.join(os.tmpdir(), 'focus-space-test');
+        if (fs.existsSync(testRoot)) {
+            fs.rmSync(testRoot, { recursive: true, force: true });
+        }
+    } catch (error) {
+        console.warn('Could not cleanup temp test directory:', error);
+    }
+
     // Clean up workspace test files
     try {
         const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
-        const workspaceTestFile = path.join(workspaceRoot, 'test-editor-file.txt');
+        const workspaceTestFiles = [
+            path.join(workspaceRoot, 'test-editor-file.txt'),
+            path.join(workspaceRoot, 'temp-file.txt'),
+            path.join(workspaceRoot, 'large-file.txt')
+        ];
         
-        if (fs.existsSync(workspaceTestFile)) {
-            fs.unlinkSync(workspaceTestFile);
-        }
+        workspaceTestFiles.forEach(filePath => {
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
+        });
     } catch (error) {
         console.warn('Could not cleanup workspace test files:', error);
     }

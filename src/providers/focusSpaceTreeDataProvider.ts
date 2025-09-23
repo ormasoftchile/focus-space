@@ -65,6 +65,9 @@ export class FocusSpaceTreeDataProvider implements vscode.TreeDataProvider<Focus
             vscode.TreeItemCollapsibleState.None
         );
 
+        // Set the ID - this is crucial for reveal operations to work
+        treeItem.id = element.id;
+
         // Check if this is the currently active file
         const isActiveFile = this.activeFileUri && 
             element.type !== 'section' && 

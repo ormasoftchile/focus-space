@@ -25,8 +25,12 @@ export function run(): Promise<void> {
         try {
             // Run the mocha test
             mocha.run((failures: number) => {
-                // Optional cleanup after tests complete
-                // cleanupTestEnvironment();
+                // Cleanup after tests complete
+                try {
+                    cleanupTestEnvironment();
+                } catch (cleanupError) {
+                    console.warn('Test cleanup failed:', cleanupError);
+                }
                 
                 if (failures > 0) {
                     e(new Error(`${failures} tests failed.`));

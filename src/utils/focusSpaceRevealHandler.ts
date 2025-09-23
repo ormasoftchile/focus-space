@@ -36,32 +36,33 @@ export class FocusSpaceRevealHandler {
     }
 
     /**
-     * Reveal a file in Focus Space if it exists there
+     * Reveal a file in the Focus Space tree view
      */
     public async revealInFocusSpace(uri: vscode.Uri): Promise<boolean> {
         if (!this.treeView) {
             return false;
         }
 
-        // Check if file exists in Focus Space
-        if (!this.focusSpaceManager.hasEntry(uri)) {
-            return false;
-        }
-
         try {
-            // Find the entry in Focus Space
+            // Find the entry by URI
             const entry = this.focusSpaceManager.getEntryByUri(uri);
-            if (entry) {
-                // Reveal the entry in the tree view
-                await this.treeView.reveal(entry, {
-                    select: true,
-                    focus: false,
-                    expand: false
-                });
-                return true;
+            if (!entry) {
+                return false;
             }
+
+            // Reveal the entry (tree view should handle refreshing as needed)
+            await this.treeView.reveal(entry, { 
+                select: true, 
+                focus: false, 
+                expand: true 
+            });
+            
+            return true;
         } catch (error) {
-            // Tree view reveal can fail if the item is not properly resolved
+            // Tree item resolution can fail in various scenarios:
+            // - Tree view not fully initialized
+            // - Entry not yet rendered in tree
+            // - VS Code extension test environment limitations
             // This is common in test environments or when tree items are not yet rendered
             console.error('Error revealing file in Focus Space:', error);
             // Return false to indicate reveal failed, but don't propagate the error
@@ -69,9 +70,7 @@ export class FocusSpaceRevealHandler {
         }
 
         return false;
-    }
-
-    /**
+    }    /**
      * Handle file reveal request based on configuration
      */
     public async handleRevealRequest(uri: vscode.Uri): Promise<void> {

@@ -251,7 +251,7 @@ suite('Configuration Migration Tests', () => {
             };
 
             const getConfigStub = sandbox.stub(vscode.workspace, 'getConfiguration');
-            getConfigStub.returns(mockConfig as any);
+            getConfigStub.withArgs('focusSpace').returns(mockConfig as any);
 
             const showInfoStub = sandbox.stub(vscode.window, 'showInformationMessage');
             const consoleWarnStub = sandbox.stub(console, 'warn');
@@ -261,19 +261,21 @@ suite('Configuration Migration Tests', () => {
 
             // Verify error handling behavior
             assert.ok(consoleWarnStub.called, 'Should log warning for failed setting import');
+            assert.ok(consoleWarnStub.calledWith('Failed to import setting invalidSetting:', sinon.match.any), 'Should log specific failure message');
             assert.ok(showInfoStub.calledWith('Focus Space: Configuration imported successfully.'), 'Should show success message despite individual failures');
         });
     });
 
     suite('Migration Error Handling', () => {
         test('Should handle migration errors gracefully', async () => {
+            // Set up context to indicate migration is needed
             (mockContext.globalState.get as sinon.SinonStub)
                 .withArgs('focusSpace.migrationVersion', '0.0.0')
-                .returns('0.0.0');
+                .returns('0.5.0'); // Old version that needs migration
 
-            // Mock configuration that throws an error
+            // Mock configuration that throws an error during migration
             const getConfigStub = sandbox.stub(vscode.workspace, 'getConfiguration');
-            getConfigStub.throws(new Error('Configuration error'));
+            getConfigStub.withArgs('focusSpace').throws(new Error('Configuration error'));
 
             const showErrorStub = sandbox.stub(vscode.window, 'showErrorMessage');
             const consoleErrorStub = sandbox.stub(console, 'error');
@@ -283,6 +285,7 @@ suite('Configuration Migration Tests', () => {
 
             // Verify error handling behavior
             assert.ok(consoleErrorStub.called, 'Should log error when migration fails');
+            assert.ok(consoleErrorStub.calledWith('Configuration migration failed:', sinon.match.any), 'Should log specific error message');
             assert.ok(showErrorStub.calledWith(sinon.match(/Configuration migration failed/)), 'Should show error message to user');
         });
     });
