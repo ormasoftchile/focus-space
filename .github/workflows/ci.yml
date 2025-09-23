@@ -65,7 +65,7 @@ jobs:
           npx @vscode/vsce package --out test-build.vsix
 
       - name: Upload test package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: matrix.os == 'ubuntu-latest' && matrix.node-version == 18
         with:
           name: test-extension-package
