@@ -8,15 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- New features will be listed here in future releases
+
+### Changed
+- Changes will be documented here
+
+## [0.0.9] - 2024-09-23
+
+### Added
 - GitHub Copilot Chat integration with multiple testing methods
 - Direct commands integration for sending Focus Space files to Copilot
 - Workspace file approach for creating markdown context files
 - Enhanced clipboard integration with automatic Copilot Chat opening
+- Comprehensive CHANGELOG.md with version history tracking
 
 ### Changed
 - Improved test command feedback with detailed file processing information
 - Enhanced error messages and user feedback across all integration methods
 - Changed keyboard shortcut from Ctrl+Shift+F to Ctrl+Alt+F (Cmd+Alt+F on Mac)
+- Updated package.json with bugs URL and homepage links for better discoverability
 
 ## [0.0.8] - 2024-09-23
 
