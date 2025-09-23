@@ -81,18 +81,6 @@
       {
         "command": "focusSpace.closeNonFocusBuffers",
         "title": "Close Non-Focus"
-      },
-      {
-        "command": "focusSpace.testCopilotCommands",
-        "title": "Focus Space: Test Copilot Commands"
-      },
-      {
-        "command": "focusSpace.testWorkspaceFile",
-        "title": "Focus Space: Test Workspace File Method"
-      },
-      {
-        "command": "focusSpace.testClipboard",
-        "title": "Focus Space: Test Clipboard Method"
       }
     ],
     "views": {
@@ -141,21 +129,6 @@
           "command": "focusSpace.removeAll",
           "when": "view == focusSpace",
           "group": "navigation"
-        },
-        {
-          "command": "focusSpace.testCopilotCommands",
-          "when": "view == focusSpace",
-          "group": "copilot@1"
-        },
-        {
-          "command": "focusSpace.testWorkspaceFile",
-          "when": "view == focusSpace",
-          "group": "copilot@2"
-        },
-        {
-          "command": "focusSpace.testClipboard",
-          "when": "view == focusSpace",
-          "group": "copilot@3"
         }
       ],
       "view/item/context": [
