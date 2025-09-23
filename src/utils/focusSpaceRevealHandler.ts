@@ -61,7 +61,11 @@ export class FocusSpaceRevealHandler {
                 return true;
             }
         } catch (error) {
+            // Tree view reveal can fail if the item is not properly resolved
+            // This is common in test environments or when tree items are not yet rendered
             console.error('Error revealing file in Focus Space:', error);
+            // Return false to indicate reveal failed, but don't propagate the error
+            return false;
         }
 
         return false;
@@ -71,34 +75,47 @@ export class FocusSpaceRevealHandler {
      * Handle file reveal request based on configuration
      */
     public async handleRevealRequest(uri: vscode.Uri): Promise<void> {
-        const behavior = this.getRevealBehavior();
-        const isInFocusSpace = this.focusSpaceManager.hasEntry(uri);
+        try {
+            const behavior = this.getRevealBehavior();
+            const isInFocusSpace = this.focusSpaceManager.hasEntry(uri);
 
-        switch (behavior) {
-            case 'focus-space-only':
-                if (isInFocusSpace) {
-                    await this.revealInFocusSpace(uri);
-                }
-                // Don't reveal in Explorer at all
-                break;
+            switch (behavior) {
+                case 'focus-space-only':
+                    if (isInFocusSpace) {
+                        await this.revealInFocusSpace(uri);
+                    }
+                    // Don't reveal in Explorer at all
+                    break;
 
-            case 'both':
-                if (isInFocusSpace) {
-                    await this.revealInFocusSpace(uri);
-                }
-                // Also reveal in Explorer (let VS Code handle this naturally)
-                await vscode.commands.executeCommand('revealInExplorer', uri);
-                break;
+                case 'both':
+                    if (isInFocusSpace) {
+                        await this.revealInFocusSpace(uri);
+                    }
+                    // Also reveal in Explorer (let VS Code handle this naturally)
+                    try {
+                        await vscode.commands.executeCommand('revealInExplorer', uri);
+                    } catch (error) {
+                        console.warn('Failed to reveal in Explorer:', error);
+                    }
+                    break;
 
-            case 'smart':
-            default:
-                // Reveal in Focus Space if present, otherwise let Explorer handle it
-                if (isInFocusSpace) {
-                    await this.revealInFocusSpace(uri);
-                } else {
-                    await vscode.commands.executeCommand('revealInExplorer', uri);
-                }
-                break;
+                case 'smart':
+                default:
+                    // Reveal in Focus Space if present, otherwise let Explorer handle it
+                    if (isInFocusSpace) {
+                        await this.revealInFocusSpace(uri);
+                    } else {
+                        try {
+                            await vscode.commands.executeCommand('revealInExplorer', uri);
+                        } catch (error) {
+                            console.warn('Failed to reveal in Explorer:', error);
+                        }
+                    }
+                    break;
+            }
+        } catch (error) {
+            console.error('Error handling reveal request:', error);
+            // Don't propagate reveal errors - they're not critical
         }
     }
 

@@ -259,8 +259,9 @@ suite('Configuration Migration Tests', () => {
             // Should not throw
             await ConfigurationMigrator.importConfiguration(configData);
 
-            assert.ok(consoleWarnStub.called);
-            assert.ok(showInfoStub.calledWith('Focus Space: Configuration imported successfully.'));
+            // Verify error handling behavior
+            assert.ok(consoleWarnStub.called, 'Should log warning for failed setting import');
+            assert.ok(showInfoStub.calledWith('Focus Space: Configuration imported successfully.'), 'Should show success message despite individual failures');
         });
     });
 
@@ -277,11 +278,12 @@ suite('Configuration Migration Tests', () => {
             const showErrorStub = sandbox.stub(vscode.window, 'showErrorMessage');
             const consoleErrorStub = sandbox.stub(console, 'error');
 
-            // Should not throw
+            // Should not throw, but should handle error gracefully
             await ConfigurationMigrator.runMigrations(mockContext);
 
-            assert.ok(consoleErrorStub.called);
-            assert.ok(showErrorStub.calledWith(sinon.match(/Configuration migration failed/)));
+            // Verify error handling behavior
+            assert.ok(consoleErrorStub.called, 'Should log error when migration fails');
+            assert.ok(showErrorStub.calledWith(sinon.match(/Configuration migration failed/)), 'Should show error message to user');
         });
     });
 });

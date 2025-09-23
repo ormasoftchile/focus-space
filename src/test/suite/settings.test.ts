@@ -187,7 +187,7 @@ suite('Configuration Settings Tests', () => {
 
         test('Should handle invalid patterns gracefully', () => {
             const mockConfig = sandbox.stub(vscode.workspace, 'getConfiguration');
-            mockConfig.returns({
+            mockConfig.withArgs('focusSpace').returns({
                 get: sandbox.stub().withArgs('excludePatterns', sinon.match.any).returns(['[invalid'])
             } as any);
             
@@ -208,7 +208,7 @@ suite('Configuration Settings Tests', () => {
 
         test('Should detect invalid maxFileSize', () => {
             const mockConfig = sandbox.stub(vscode.workspace, 'getConfiguration');
-            mockConfig.returns({
+            mockConfig.withArgs('focusSpace').returns({
                 get: sandbox.stub()
                     .withArgs('maxFileSize', 10).returns(200) // Invalid: too high
                     .withArgs('maxItemCount', 1000).returns(1000)
@@ -225,19 +225,26 @@ suite('Configuration Settings Tests', () => {
 
         test('Should detect invalid patterns', () => {
             const mockConfig = sandbox.stub(vscode.workspace, 'getConfiguration');
-            mockConfig.returns({
-                get: sandbox.stub()
-                    .withArgs('excludePatterns', sinon.match.any).returns(['[invalid'])
-                    .withArgs('maxFileSize', 10).returns(10)
-                    .withArgs('maxItemCount', 1000).returns(1000)
-                    .withArgs('watcherDebounceMs', 100).returns(100)
-                    .withArgs('persistenceDebounceMs', 500).returns(500)
+            
+            // Create a comprehensive get mock that handles method chaining
+            const getMock = sandbox.stub();
+            getMock.withArgs('excludePatterns', sinon.match.any).returns(['[invalid']);
+            getMock.withArgs('maxFileSize', 10).returns(10);
+            getMock.withArgs('maxItemCount', 1000).returns(1000);
+            getMock.withArgs('watcherDebounceMs', 100).returns(100);
+            getMock.withArgs('persistenceDebounceMs', 500).returns(500);
+            // Handle any other calls with defaults
+            getMock.callsFake((key: string, defaultValue: any) => defaultValue);
+            
+            mockConfig.withArgs('focusSpace').returns({
+                get: getMock
             } as any);
             
             const manager = new (ConfigurationManager as any)();
             const issues = manager.validateConfiguration();
             
-            assert.ok(issues.some((issue: string) => issue.includes('Invalid exclude pattern')));
+            console.log('Issues returned:', issues);
+            assert.ok(issues.some((issue: string) => issue.includes('Invalid exclude pattern: [invalid')));
         });
     });
 

@@ -43,7 +43,7 @@ suite('Editor Integration Test Suite', () => {
     });
 
     test('should have editor/title menus configured', async () => {
-        const extension = vscode.extensions.getExtension('your-publisher.focus-space');
+        const extension = vscode.extensions.getExtension('focus-space.focus-space');
         assert.ok(extension, 'Extension should be available');
         
         const packageJson = extension?.packageJSON;
@@ -63,7 +63,7 @@ suite('Editor Integration Test Suite', () => {
     });
 
     test('should have keyboard shortcuts configured', async () => {
-        const extension = vscode.extensions.getExtension('your-publisher.focus-space');
+        const extension = vscode.extensions.getExtension('focus-space.focus-space');
         const packageJson = extension?.packageJSON;
         assert.ok(packageJson?.contributes?.keybindings, 'Should have keybindings configured');
         

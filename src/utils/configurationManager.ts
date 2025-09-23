@@ -274,8 +274,10 @@ export class ConfigurationManager {
         if (Array.isArray(patterns)) {
             for (const pattern of patterns) {
                 try {
-                    this.globToRegex(pattern);
+                    // Test if the pattern can be converted to a valid regex
+                    new RegExp(this.globToRegex(pattern));
                 } catch (error) {
+                    console.error(`Invalid exclude pattern: ${pattern}`, error);
                     issues.push(`Invalid exclude pattern: ${pattern}`);
                 }
             }

@@ -5,11 +5,11 @@ suite('Extension Test Suite', () => {
     vscode.window.showInformationMessage('Start all tests.');
 
     test('Extension should be present', () => {
-        assert.ok(vscode.extensions.getExtension('your-publisher.focus-space'));
+        assert.ok(vscode.extensions.getExtension('focus-space.focus-space'));
     });
 
     test('Extension should activate', async () => {
-        const extension = vscode.extensions.getExtension('your-publisher.focus-space');
+        const extension = vscode.extensions.getExtension('focus-space.focus-space');
         if (extension) {
             await extension.activate();
             assert.strictEqual(extension.isActive, true);
