@@ -74,7 +74,7 @@ suite('Editor Integration Test Suite', () => {
             binding.command === 'focusSpace.addToFocusSpace'
         );
         assert.ok(addCurrentFileBinding, 'Should have keybinding for adding current file');
-        assert.strictEqual(addCurrentFileBinding.key, 'ctrl+shift+f', 'Should have correct key combination');
+        assert.strictEqual(addCurrentFileBinding.key, 'ctrl+alt+f', 'Should have correct key combination');
         
         // Check for addFilesToFocusSpace keybinding
         const addFilesBinding = keybindings.find((binding: any) => 
