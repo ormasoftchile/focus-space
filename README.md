@@ -154,6 +154,25 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 3. Open in VS Code: `code .`
 4. Press F5 to launch Extension Development Host
 
+### Release Process
+
+This extension uses automated CI/CD with GitHub Actions:
+
+**Quick Release:**
+```bash
+npm run release:patch    # Bug fixes (1.0.0 → 1.0.1)
+npm run release:minor    # New features (1.0.0 → 1.1.0) 
+npm run release:major    # Breaking changes (1.0.0 → 2.0.0)
+```
+
+**Manual Steps:**
+1. Ensure all changes are committed and pushed
+2. Run `npm run validate` to check everything works
+3. Run the appropriate release command above
+4. Monitor the [GitHub Actions](https://github.com/ormasoftchile/focus-space/actions) for deployment
+
+For detailed CI/CD setup instructions, see [CI-CD-SETUP.md](docs/CI-CD-SETUP.md).
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
