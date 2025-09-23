@@ -1,5 +1,6 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { FocusSpaceManager } from '../../managers/focusSpaceManager';
 
 suite('Commands Tests', () => {
@@ -144,11 +145,11 @@ suite('Commands Tests', () => {
 
     test('Should handle URI path extraction', () => {
         const fileUri = vscode.Uri.file('/long/path/to/myfile.js');
-        const fileName = fileUri.fsPath.split('/').pop();
+        const fileName = path.basename(fileUri.fsPath);
         assert.strictEqual(fileName, 'myfile.js');
         
         const folderUri = vscode.Uri.file('/path/to/folder');
-        const folderName = folderUri.fsPath.split('/').pop();
+        const folderName = path.basename(folderUri.fsPath);
         assert.strictEqual(folderName, 'folder');
     });
 
