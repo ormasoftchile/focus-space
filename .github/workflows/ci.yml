@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        node-version: [18, 20]
+        node-version: [20, 22]
 
     steps:
       - name: Checkout
@@ -66,7 +66,7 @@ jobs:
 
       - name: Upload test package
         uses: actions/upload-artifact@v4
-        if: matrix.os == 'ubuntu-latest' && matrix.node-version == 18
+        if: matrix.os == 'ubuntu-latest' && matrix.node-version == 20
         with:
           name: test-extension-package
           path: test-build.vsix
