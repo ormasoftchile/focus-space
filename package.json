@@ -2,7 +2,7 @@
   "name": "focus-space",
   "displayName": "Focus Space",
   "description": "Maintain a focused view of files and folders for large projects",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "publisher": "focus-space",
   "icon": "icons/focus-space-icon.png",
   "repository": {
