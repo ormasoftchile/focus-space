@@ -34,6 +34,24 @@ jobs:
       - name: Compile TypeScript
         run: npm run compile
 
+      - name: Setup test environment (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          # Create test directories
+          sudo mkdir -p /test/{folder,src,empty-folder,project,my-project,auto-convert-folder,convert-folder,reveal-folder}
+          sudo mkdir -p /project/src
+          # Create test files
+          sudo touch /test/{file.ts,renamed.ts,external-file.ts,external-to-section.ts,existing.ts,valid.ts}
+          sudo mkdir -p /test/external-folder && sudo touch /test/external-folder/index.ts
+          sudo touch /test/folder/{file1.ts,file2.ts}
+          sudo touch /test/src/main.ts
+          sudo touch /test/project/app.ts
+          sudo touch /test/my-project/index.ts
+          sudo touch /project/src/component.ts
+          # Make directories writable for tests
+          sudo chmod -R 755 /test /project
+          echo "Test environment setup completed"
+
       - name: Run tests
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then

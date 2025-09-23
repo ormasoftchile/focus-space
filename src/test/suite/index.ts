@@ -1,8 +1,12 @@
 import * as path from 'path';
 import Mocha from 'mocha';
 import { glob } from 'glob';
+import { setupTestEnvironment, cleanupTestEnvironment } from './testSetup';
 
 export function run(): Promise<void> {
+    // Setup test environment before running tests
+    setupTestEnvironment();
+
     // Create the mocha test
     const mocha = new Mocha({
         ui: 'tdd',
@@ -21,6 +25,9 @@ export function run(): Promise<void> {
         try {
             // Run the mocha test
             mocha.run((failures: number) => {
+                // Optional cleanup after tests complete
+                // cleanupTestEnvironment();
+                
                 if (failures > 0) {
                     e(new Error(`${failures} tests failed.`));
                 } else {
