@@ -1094,6 +1094,25 @@ When dragging an item to a destination where an identical item already exists:
 3. **Workspace File Method**: Create markdown context files for Copilot to reference
 4. **Enhanced Clipboard Method**: Improved clipboard workflow with structured markdown content
 
+#### Section-Based Copilot Integration Workflow:
+**Scenario**: Section contains multiple files, and you want to send all files in that section to GitHub Copilot
+
+**User Workflow:**
+1. **Right-click on section** in Focus Space tree view
+2. **Select test method** (e.g., "Focus Space: Test Clipboard" or "Focus Space: Test Workspace File")
+3. **System automatically**:
+   - Detects the section selection via `treeItem.contextValue`
+   - Uses `TreeOperations.flatten([section])` to extract all nested entries
+   - Filters to include only files: `entry.type === 'file'`
+   - Processes all files through chosen integration method
+4. **Result**: All files within the section (and any nested subsections) are sent to Copilot with proper context
+
+**Technical Implementation:**
+- `getSelectedEntries()` function handles section detection and file extraction
+- All 4 integration methods work seamlessly with section-based selection
+- Maintains hierarchical context while filtering non-file entries
+- Supports deeply nested section structures
+
 #### Unit Tests:
 - ✅ Integration validated through extension compilation and command registration
 - ✅ Test commands available in command palette and Focus Space view context menu
@@ -1102,9 +1121,13 @@ When dragging an item to a destination where an identical item already exists:
 #### Manual Test Checklist:
 - ✅ Test commands accessible via command palette ("Focus Space: Test [Method]")
 - ✅ Test commands accessible via Focus Space view title menu buttons  
+- ✅ **NEW**: Test commands accessible via right-click on sections (context menu integration)
 - ✅ Commands handle empty Focus Space gracefully
 - ✅ Error messages provide clear feedback on method viability
 - ✅ Helper function correctly identifies selected entries based on context
+- ✅ **Section-based sending**: Right-click on section → Test command sends all files within section
+- ✅ **Nested section support**: Files within subsections are automatically included
+- ✅ **Smart filtering**: Only actual files (not sections/folders) are sent to Copilot
 
 #### Acceptance Criteria:
 - ✅ All 4 integration methods implemented and testable
@@ -1117,6 +1140,7 @@ When dragging an item to a destination where an identical item already exists:
 - `src/utils/copilotChatIntegration.ts`: Complete utility class with 4 distinct integration methods (Chat API, Direct Commands, Workspace File, Clipboard)
 - Test command implementations in `src/extension.ts` with proper error handling and user feedback
 - Context menu integration in `package.json` for easy testing access
+- **Enhanced UI Integration**: Added test commands to Focus Space view title and section context menus for easy testing
 
 **Technical Architecture:**
 - **Method 1 (Chat API)**: Uses `vscode.chat.createChatParticipant` for direct integration if VS Code 1.90+ available
@@ -1126,6 +1150,8 @@ When dragging an item to a destination where an identical item already exists:
 
 **Helper Functions:**
 - `getSelectedEntries()`: Context-aware entry selection supporting both tree selection and Focus Space contents
+- **Section Support**: When a section is selected, automatically includes all files within that section and nested subsections
+- **Smart File Filtering**: Flattens hierarchical structures and filters to include only file entries for Copilot context
 - Error handling with graceful fallbacks and informative user messages
 - VS Code API compatibility checks with type safety
 

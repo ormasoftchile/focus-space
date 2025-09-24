@@ -10,7 +10,10 @@ import { configuration } from './utils/configurationManager';
 import { FocusEntry } from './models/focusEntry';
 import { TreeOperations } from './utils/treeOperations';
 import { CopilotChatIntegration } from './utils/copilotChatIntegration';
-
+Run npm version 0.0.9 --no-git-tag-version
+npm error Version not changed
+npm error A complete log of this run can be found in: /home/runner/.npm/_logs/2025-09-23T14_17_17_723Z-debug-0.log
+Error: Process completed with exit code 1.
 export function activate(context: vscode.ExtensionContext) {
     console.log('Focus Space extension is now active!');
     

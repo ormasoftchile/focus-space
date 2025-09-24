@@ -81,6 +81,21 @@
       {
         "command": "focusSpace.closeNonFocusBuffers",
         "title": "Close Non-Focus"
+      },
+      {
+        "command": "focusSpace.testCopilotCommands",
+        "title": "Focus Space: Test Direct Commands",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "focusSpace.testWorkspaceFile",
+        "title": "Focus Space: Test Workspace File",
+        "icon": "$(file-text)"
+      },
+      {
+        "command": "focusSpace.testClipboard",
+        "title": "Focus Space: Test Clipboard",
+        "icon": "$(clippy)"
       }
     ],
     "views": {
@@ -129,6 +144,21 @@
           "command": "focusSpace.removeAll",
           "when": "view == focusSpace",
           "group": "navigation"
+        },
+        {
+          "command": "focusSpace.testCopilotCommands",
+          "when": "view == focusSpace",
+          "group": "2_copilot"
+        },
+        {
+          "command": "focusSpace.testWorkspaceFile",
+          "when": "view == focusSpace",
+          "group": "2_copilot"
+        },
+        {
+          "command": "focusSpace.testClipboard",
+          "when": "view == focusSpace",
+          "group": "2_copilot"
         }
       ],
       "view/item/context": [
@@ -146,6 +176,21 @@
           "command": "focusSpace.convertFolderToSection",
           "when": "view == focusSpace && viewItem == folder",
           "group": "navigation"
+        },
+        {
+          "command": "focusSpace.testCopilotCommands",
+          "when": "view == focusSpace && viewItem == section",
+          "group": "copilot"
+        },
+        {
+          "command": "focusSpace.testWorkspaceFile",
+          "when": "view == focusSpace && viewItem == section",
+          "group": "copilot"
+        },
+        {
+          "command": "focusSpace.testClipboard",
+          "when": "view == focusSpace && viewItem == section",
+          "group": "copilot"
         }
       ]
     },
