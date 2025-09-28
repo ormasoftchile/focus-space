@@ -2,6 +2,8 @@
 
 **A VS Code extension that adds a dedicated "Focus Space" panel to enhance your development workflow by curating the files and folders you're actively working on.**
 
+
+![Focus Space Demo](./videos/focus-space-demo.gif)
 ![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension-blue?logo=visual-studio-code)
 ![License](https://img.shields.io/github/license/ormasoftchile/focus-space)
 ![Version](https://img.shields.io/badge/version-0.0.1-green)
