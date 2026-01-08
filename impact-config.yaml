@@ -1,0 +1,56 @@
+# Spec-Kit Impact Analyzer Configuration
+# Project: Focus Space VS Code Extension
+
+project:
+  name: "Focus Space"
+  type: "vscode-extension"
+  description: "VS Code extension for focused file management"
+
+paths:
+  source: "src/"
+  tests: "src/test/"
+  specs: "docs/"  # No spec-kit, use docs instead
+  exclude:
+    - "node_modules"
+    - "out"
+    - "dist"
+    - ".vscode-test"
+
+classification:
+  boilerplate:
+    - "models/**/*.ts"
+    - "test/**/*.ts"
+    
+  glue_code:
+    - "controllers/**/*.ts"
+    - "providers/**/*.ts"
+    - "managers/**/*.ts"
+    - "utils/**/*.ts"
+    
+  core_logic:
+    - "extension.ts"
+
+multipliers:
+  boilerplate: 0.5
+  glue_code: 1.5
+  core_logic: 4.0
+
+ai_percent:
+  boilerplate: 90
+  glue_code: 70
+  core_logic: 40  # Higher for this project - large extension.ts
+
+git:
+  session_gap_hours: 2
+  session_buffer_minutes: 30
+  exclude_authors:
+    - "semantic-release-bot"
+    - "github-actions[bot]"
+
+speckit:
+  enabled: false  # No spec-kit for this project
+
+output:
+  report_file: "IMPACT_REPORT.md"
+  json_file: "impact-metrics.json"
+  include_file_details: true
