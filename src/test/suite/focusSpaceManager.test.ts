@@ -7,7 +7,7 @@ suite('FocusSpaceManager Tests', () => {
     let mockContext: vscode.ExtensionContext;
 
     // Create a mock extension context for testing
-    const createMockContext = (): vscode.ExtensionContext => {
+    const createMockContext = () => {
         return {
             subscriptions: [],
             workspaceState: {
@@ -32,7 +32,7 @@ suite('FocusSpaceManager Tests', () => {
             secrets: undefined as any,
             environmentVariableCollection: undefined as any,
             extension: undefined as any,
-        };
+        } as unknown as vscode.ExtensionContext;
     };
 
     setup(() => {
