@@ -15,14 +15,10 @@ export class ConfigurationMigrator {
         const lastMigrationVersion = context.globalState.get<string>(this.MIGRATION_VERSION_KEY, '0.0.0');
         
         if (this.needsMigration(lastMigrationVersion)) {
-            console.log(`Running configuration migration from ${lastMigrationVersion} to ${this.CURRENT_VERSION}`);
-            
             try {
                 await this.performMigrations(lastMigrationVersion);
                 await context.globalState.update(this.MIGRATION_VERSION_KEY, this.CURRENT_VERSION);
-                console.log('Configuration migration completed successfully');
             } catch (error) {
-                console.error('Configuration migration failed:', error);
                 vscode.window.showErrorMessage('Focus Space: Configuration migration failed. Some settings may need to be reconfigured.');
             }
         }
@@ -84,7 +80,6 @@ export class ConfigurationMigrator {
             await config.update('revealBehavior', 'smart', vscode.ConfigurationTarget.Global);
         }
 
-        console.log('Applied v1.0.0 configuration migration');
     }
 
     /**
@@ -117,8 +112,6 @@ export class ConfigurationMigrator {
         const fixedIssues: string[] = [];
 
         if (issues.length > 0) {
-            console.warn('Configuration validation issues found:', issues);
-            
             // Try to fix some common issues automatically
             for (const issue of issues) {
                 if (issue.includes('maxFileSize')) {
@@ -180,8 +173,8 @@ export class ConfigurationMigrator {
         for (const [key, value] of Object.entries(settings)) {
             try {
                 await config.update(key, value, vscode.ConfigurationTarget.Workspace);
-            } catch (error) {
-                console.warn(`Failed to import setting ${key}:`, error);
+            } catch {
+                // Skip invalid settings
             }
         }
 

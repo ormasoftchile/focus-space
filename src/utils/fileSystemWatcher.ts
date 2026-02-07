@@ -165,8 +165,8 @@ export class FileSystemWatcher {
 
             this.watchers.push(watcher);
             this.disposables.push(watcher);
-        } catch (error) {
-            console.warn(`Failed to create watcher for path: ${path}`, error);
+        } catch {
+            // Watcher creation failed — path may not exist
         }
     }
 
@@ -189,8 +189,8 @@ export class FileSystemWatcher {
 
                 this.watchers.push(watcher);
                 this.disposables.push(watcher);
-            } catch (error) {
-                console.warn(`Failed to create workspace watcher for: ${folder.uri.fsPath}`, error);
+            } catch {
+                // Workspace watcher creation failed
             }
         }
     }
@@ -199,8 +199,6 @@ export class FileSystemWatcher {
      * Handle workspace folder changes
      */
     private async handleWorkspaceFoldersChange(event: vscode.WorkspaceFoldersChangeEvent): Promise<void> {
-        console.log('Workspace folders changed');
-        
         // When workspace folders are removed, check if any focused entries become invalid
         for (const removedFolder of event.removed) {
             await this.handleRemovedWorkspaceFolder(removedFolder);
@@ -268,7 +266,6 @@ export class FileSystemWatcher {
         for (const rename of event.files) {
             const entry = this.findEntryByUri(rename.oldUri);
             if (entry) {
-                console.log(`File renamed: ${rename.oldUri.fsPath} -> ${rename.newUri.fsPath}`);
                 await this.updateEntryUri(entry, rename.newUri);
                 
                 const relativePath = vscode.workspace.asRelativePath(rename.newUri);
@@ -286,7 +283,6 @@ export class FileSystemWatcher {
         for (const uri of event.files) {
             const entry = this.findEntryByUri(uri);
             if (entry) {
-                console.log(`File deleted via VS Code: ${uri.fsPath}`);
                 await this.handleDeletedEntry(entry, uri);
             }
         }
@@ -296,25 +292,20 @@ export class FileSystemWatcher {
      * Handle file creation — check if it matches a buffered rename candidate.
      */
     private handleFileCreate(uri: vscode.Uri): void {
-        console.log('File created:', uri.fsPath);
         this.tryMatchRenameCandidate(uri);
     }
 
     /**
      * Handle file changes
      */
-    private handleFileChange(uri: vscode.Uri): void {
-        console.log('File changed:', uri.fsPath);
+    private handleFileChange(_uri: vscode.Uri): void {
         // File content changes don't affect Focus Space structure
-        // No action needed
     }
 
     /**
      * Handle file deletion — buffer as a rename candidate before falling back to delete behavior.
      */
     private async handleFileDelete(uri: vscode.Uri): Promise<void> {
-        console.log('File deleted:', uri.fsPath);
-
         const entry = this.findEntryByUri(uri);
         if (!entry) {
             // Also check for entries nested under a deleted directory
@@ -477,8 +468,8 @@ export class FileSystemWatcher {
                     `Focus Space: Updated "${entry.label || vscode.workspace.asRelativePath(entry.uri)}" to new location`
                 );
             }
-        } catch (error) {
-            console.warn('Error checking file move:', error);
+        } catch {
+            // File move check failed — not critical
         }
     }
 

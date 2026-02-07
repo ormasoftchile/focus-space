@@ -64,8 +64,7 @@ export class FocusSpaceRevealHandler {
             // - Entry not yet rendered in tree
             // - VS Code extension test environment limitations
             // This is common in test environments or when tree items are not yet rendered
-            console.error('Error revealing file in Focus Space:', error);
-            // Return false to indicate reveal failed, but don't propagate the error
+            // Reveal failed — tree view not fully initialized or entry not yet rendered
             return false;
         }
 
@@ -93,8 +92,8 @@ export class FocusSpaceRevealHandler {
                     // Also reveal in Explorer (let VS Code handle this naturally)
                     try {
                         await vscode.commands.executeCommand('revealInExplorer', uri);
-                    } catch (error) {
-                        console.warn('Failed to reveal in Explorer:', error);
+                    } catch {
+                        // Explorer reveal not available
                     }
                     break;
 
@@ -106,14 +105,13 @@ export class FocusSpaceRevealHandler {
                     } else {
                         try {
                             await vscode.commands.executeCommand('revealInExplorer', uri);
-                        } catch (error) {
-                            console.warn('Failed to reveal in Explorer:', error);
+                        } catch {
+                            // Explorer reveal not available
                         }
                     }
                     break;
             }
-        } catch (error) {
-            console.error('Error handling reveal request:', error);
+        } catch {
             // Don't propagate reveal errors - they're not critical
         }
     }

@@ -169,8 +169,7 @@ export class FocusSpaceDragAndDropController implements vscode.TreeDragAndDropCo
 					}
 					addedCount++;
 
-				} catch (error) {
-					console.warn(`Failed to add ${uri.toString()} to Focus Space:`, error);
+				} catch {
 					// Continue with other files rather than failing the entire operation
 				}
 			}

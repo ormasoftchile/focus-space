@@ -238,8 +238,7 @@ export class FocusSpaceManager {
                             }
                             
                             childEntry.children = nestedChildren;
-                        } catch (nestedError) {
-                            console.error('Error reading nested folder contents:', nestedError);
+                        } catch {
                             childEntry.children = [];
                         }
                     }
@@ -248,8 +247,7 @@ export class FocusSpaceManager {
                 }
                 
                 entry.children = children;
-            } catch (error) {
-                console.error('Error reading folder contents during eager loading:', error);
+            } catch {
                 entry.children = []; // Empty array on error
             }
         }
@@ -426,10 +424,8 @@ export class FocusSpaceManager {
             // Fire change event to update UI
             this._onDidChange.fire();
             
-            console.log(`Focus Space: Loaded ${this.rootEntries.length} entries from storage`);
-        } catch (error) {
+        } catch {
             // File doesn't exist or is corrupt - start fresh
-            console.log('Focus Space: Starting with empty state -', error);
             TreeOperations.clearCache();
         }
     }
@@ -556,8 +552,7 @@ export class FocusSpaceManager {
             await this.removeEntry(folderId);
             
             return { sectionId: section.id, childEntries };
-        } catch (error) {
-            console.error('Failed to auto-convert folder to section:', error);
+        } catch {
             return null;
         }
     }

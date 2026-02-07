@@ -14,8 +14,6 @@ import { sendToCopilot } from './utils/copilotChatIntegration';
 import { getGitChanges } from './utils/gitChangesImporter';
 
 export function activate(context: vscode.ExtensionContext) {
-    console.log('Focus Space extension is now active!');
-    
     // Initialize the FocusSpaceManager
     const manager = FocusSpaceManager.getInstance(context);
     
@@ -24,13 +22,10 @@ export function activate(context: vscode.ExtensionContext) {
     
     // Load persisted state and refresh UI
     manager.loadState().then(() => {
-        console.log('Focus Space: State loaded successfully');
-        const entries = manager.getTopLevelEntries();
-        console.log(`Focus Space: Found ${entries.length} top-level entries`);
         treeDataProvider.refresh();
         updateVisibilityContext(); // Ensure view becomes visible
-    }).catch(error => {
-        console.error('Failed to load Focus Space state:', error);
+    }).catch(() => {
+        // State load failed — start fresh
     });
     
     // Initialize the Drag and Drop Controller
@@ -336,7 +331,6 @@ export function activate(context: vscode.ExtensionContext) {
             }
 
         } catch (error) {
-            console.error('Remove command error:', error);
             vscode.window.showErrorMessage(`Error removing from Focus Space: ${error}`);
         }
     });
@@ -529,8 +523,8 @@ export function activate(context: vscode.ExtensionContext) {
                         // Close the tab
                         await vscode.window.tabGroups.close(tab);
                         closedCount++;
-                    } catch (error) {
-                        console.error('Error closing tab:', error);
+                    } catch {
+                        // Tab may have been closed by another operation
                     }
                 }
             }
@@ -769,21 +763,19 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export async function deactivate() {
-    console.log('Focus Space extension is deactivated');
-    
     // Dispose file system watcher
     try {
         const fileSystemWatcher = FileSystemWatcher.getInstance();
         fileSystemWatcher.dispose();
-    } catch (error) {
-        console.error('Error disposing file system watcher:', error);
+    } catch {
+        // Already disposed or never initialized
     }
     
     // Force save any pending changes before deactivation
     try {
         const manager = FocusSpaceManager.getInstance();
         await manager.saveNow();
-    } catch (error) {
-        console.error('Error saving on deactivation:', error);
+    } catch {
+        // Manager not initialized — nothing to save
     }
 }

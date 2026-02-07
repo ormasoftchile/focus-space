@@ -194,8 +194,7 @@ export class ConfigurationManager {
                 // Use VS Code's built-in glob matching
                 const matcher = new RegExp(this.globToRegex(pattern));
                 return matcher.test(relativePath) || matcher.test(filePath);
-            } catch (error) {
-                console.warn(`Invalid exclude pattern: ${pattern}`, error);
+            } catch {
                 return false;
             }
         });
@@ -284,8 +283,7 @@ export class ConfigurationManager {
                 try {
                     // Test if the pattern can be converted to a valid regex
                     new RegExp(this.globToRegex(pattern));
-                } catch (error) {
-                    console.error(`Invalid exclude pattern: ${pattern}`, error);
+                } catch {
                     issues.push(`Invalid exclude pattern: ${pattern}`);
                 }
             }
@@ -307,10 +305,8 @@ export class ConfigurationManager {
         }
     }
 
-    private fireConfigurationChanged(event: vscode.ConfigurationChangeEvent): void {
-        // This can be extended with an event emitter if needed
-        // For now, components can listen to workspace.onDidChangeConfiguration directly
-        console.log('Focus Space configuration changed', event);
+    private fireConfigurationChanged(_event: vscode.ConfigurationChangeEvent): void {
+        // Can be extended with an event emitter if needed
     }
 
     private clampNumber(value: number, min: number, max: number): number {
