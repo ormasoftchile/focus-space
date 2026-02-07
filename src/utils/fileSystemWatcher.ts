@@ -1,7 +1,19 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { FocusSpaceManager } from '../managers/focusSpaceManager';
 import { FocusEntry } from '../models/focusEntry';
 import { configuration } from './configurationManager';
+
+/**
+ * A buffered delete event awaiting a possible matching create (rename correlation).
+ */
+interface RenameCandidate {
+    deletedUri: vscode.Uri;
+    basename: string;
+    timestamp: number;
+    affectedEntries: FocusEntry[];
+    timer: ReturnType<typeof setTimeout>;
+}
 
 /**
  * File System Watcher for Focus Space entries
@@ -12,6 +24,8 @@ export class FileSystemWatcher {
     private watchers: vscode.FileSystemWatcher[] = [];
     private manager: FocusSpaceManager;
     private disposables: vscode.Disposable[] = [];
+    /** Buffered delete events awaiting matching create events for rename detection. */
+    private renameCandidates: Map<string, RenameCandidate> = new Map();
 
     private constructor(manager: FocusSpaceManager) {
         this.manager = manager;
@@ -279,12 +293,11 @@ export class FileSystemWatcher {
     }
 
     /**
-     * Handle file creation
+     * Handle file creation — check if it matches a buffered rename candidate.
      */
     private handleFileCreate(uri: vscode.Uri): void {
         console.log('File created:', uri.fsPath);
-        // Generally, we don't auto-add created files to Focus Space
-        // Users should explicitly add them if needed
+        this.tryMatchRenameCandidate(uri);
     }
 
     /**
@@ -297,32 +310,124 @@ export class FileSystemWatcher {
     }
 
     /**
-     * Handle file deletion
+     * Handle file deletion — buffer as a rename candidate before falling back to delete behavior.
      */
     private async handleFileDelete(uri: vscode.Uri): Promise<void> {
         console.log('File deleted:', uri.fsPath);
-        
+
         const entry = this.findEntryByUri(uri);
-        if (entry) {
-            await this.handleDeletedEntry(entry, uri);
+        if (!entry) {
+            // Also check for entries nested under a deleted directory
+            const nestedEntries = this.findEntriesUnderPath(uri.fsPath);
+            if (nestedEntries.length > 0) {
+                this.bufferDeleteAsRenameCandidate(uri, nestedEntries);
+            }
+            return;
         }
+
+        this.bufferDeleteAsRenameCandidate(uri, [entry]);
     }
 
     /**
-     * Handle workspace file creation (broader scope)
+     * Buffer a delete event as a potential rename candidate.
+     * If no matching create arrives within the detection window, fall back to normal delete handling.
+     */
+    private bufferDeleteAsRenameCandidate(deletedUri: vscode.Uri, affectedEntries: FocusEntry[]): void {
+        const basename = path.basename(deletedUri.fsPath);
+        const key = deletedUri.toString();
+
+        // Cancel any existing candidate for the same URI
+        const existing = this.renameCandidates.get(key);
+        if (existing) {
+            clearTimeout(existing.timer);
+        }
+
+        const windowMs = configuration.renameDetectionWindowMs;
+        const timer = setTimeout(() => {
+            // Window expired — treat as genuine delete
+            this.renameCandidates.delete(key);
+            for (const entry of affectedEntries) {
+                this.handleDeletedEntry(entry, entry.uri);
+            }
+        }, windowMs);
+
+        this.renameCandidates.set(key, {
+            deletedUri,
+            basename,
+            timestamp: Date.now(),
+            affectedEntries,
+            timer,
+        });
+    }
+
+    /**
+     * Find all Focus Space entries whose URI starts with a given directory path.
+     */
+    private findEntriesUnderPath(dirPath: string): FocusEntry[] {
+        const entries = this.getAllEntries();
+        const prefix = dirPath.endsWith('/') ? dirPath : dirPath + '/';
+        return entries.filter(e =>
+            e.type !== 'section' && e.uri.fsPath.startsWith(prefix)
+        );
+    }
+
+    /**
+     * Handle workspace file creation (broader scope) — also check for rename candidates.
      */
     private handleWorkspaceFileCreate(uri: vscode.Uri): void {
-        // Check if this affects any focused entries (e.g., file moved/renamed)
+        this.tryMatchRenameCandidate(uri);
         this.checkForFileMove(uri);
     }
 
     /**
-     * Handle workspace file deletion (broader scope)
+     * Handle workspace file deletion (broader scope) — buffer as rename candidate.
      */
     private async handleWorkspaceFileDelete(uri: vscode.Uri): Promise<void> {
         const entry = this.findEntryByUri(uri);
         if (entry) {
-            await this.handleDeletedEntry(entry, uri);
+            this.bufferDeleteAsRenameCandidate(uri, [entry]);
+            return;
+        }
+
+        // Check for entries nested under a deleted directory
+        const nestedEntries = this.findEntriesUnderPath(uri.fsPath);
+        if (nestedEntries.length > 0) {
+            this.bufferDeleteAsRenameCandidate(uri, nestedEntries);
+        }
+    }
+
+    /**
+     * Try to match a newly created URI against buffered rename candidates.
+     * If a candidate matches by basename, treat it as a rename and update entry paths.
+     */
+    private tryMatchRenameCandidate(createdUri: vscode.Uri): void {
+        const createdBasename = path.basename(createdUri.fsPath);
+        const createdDir = path.dirname(createdUri.fsPath);
+
+        for (const [key, candidate] of this.renameCandidates) {
+            if (candidate.basename === createdBasename) {
+                // Match found — treat as rename
+                clearTimeout(candidate.timer);
+                this.renameCandidates.delete(key);
+
+                const deletedDir = path.dirname(candidate.deletedUri.fsPath);
+
+                for (const entry of candidate.affectedEntries) {
+                    // Compute new URI by replacing the deleted directory prefix with the created directory
+                    const relativeSuffix = entry.uri.fsPath.substring(deletedDir.length);
+                    const newPath = createdDir + relativeSuffix;
+                    const newUri = vscode.Uri.file(newPath);
+
+                    this.updateEntryUri(entry, newUri);
+                }
+
+                const relativePath = vscode.workspace.asRelativePath(createdUri);
+                vscode.window.showInformationMessage(
+                    `Focus Space: Updated ${candidate.affectedEntries.length} entry path(s) after rename to "${relativePath}"`
+                );
+
+                return; // Only match one candidate per create event
+            }
         }
     }
 
@@ -463,6 +568,11 @@ export class FileSystemWatcher {
      */
     public dispose(): void {
         this.disposeWatchers();
+        // Clear all pending rename candidates
+        for (const [, candidate] of this.renameCandidates) {
+            clearTimeout(candidate.timer);
+        }
+        this.renameCandidates.clear();
         for (const disposable of this.disposables) {
             disposable.dispose();
         }

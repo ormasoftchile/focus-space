@@ -38,8 +38,8 @@ suite('Close Non-Focus Buffers Tests', () => {
             logUri: vscode.Uri.file('/mock/log'),
             secrets: {} as any,
             asAbsolutePath: (relativePath: string) => '/mock/' + relativePath,
-            extension: {} as any
-        };
+            extension: {} as any,
+        } as unknown as vscode.ExtensionContext;
 
         // Initialize manager
         manager = FocusSpaceManager.getInstance(mockContext);

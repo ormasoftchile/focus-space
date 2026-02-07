@@ -8,14 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- GitHub Copilot Chat integration with multiple testing methods (EXPERIMENTAL - not ready for release)
-- Direct commands integration for sending Focus Space files to Copilot (EXPERIMENTAL)
-- Workspace file approach for creating markdown context files (EXPERIMENTAL)
-- Enhanced clipboard integration with automatic Copilot Chat opening (EXPERIMENTAL)
+- **Status Bar Indicator**: Persistent status bar item showing file count (`$(target) N files`). Hides when Focus Space is empty. Click to reveal the Focus Space panel.
+- **Add All Open Editors**: New command `Focus Space: Add All Open Editors` — adds all open editor tabs in one action, skipping duplicates, untitled docs, and excluded files.
+- **Send to Copilot Chat**: Production-ready `Focus Space: Send to Copilot Chat` command with token-aware context building, binary file detection, progress notification, and clipboard fallback.
+- **Add from Git Changes**: New command `Focus Space: Add from Git Changes` — populates Focus Space from modified, staged, and merge-conflict files in the current Git repository.
+- **Folder Rename Resilience**: External folder renames (e.g., via terminal `mv`) are now detected within a configurable time window and Focus Space entry paths are updated automatically.
+- New settings: `focusSpace.copilotTokenBudget` (default 60000) and `focusSpace.renameDetectionWindowMs` (default 300ms).
 
 ### Changed
-- Improved test command feedback with detailed file processing information (EXPERIMENTAL)
-- Enhanced error messages and user feedback across all integration methods (EXPERIMENTAL)
+- Replaced 3 experimental Copilot test commands (`testCopilotCommands`, `testWorkspaceFile`, `testClipboard`) with a single production `sendToCopilot` command.
+- Copilot context export now enforces a configurable token budget with per-file size limits and binary detection.
+
+### Removed
+- `focusSpace.testCopilotCommands` command (replaced by `focusSpace.sendToCopilot`)
+- `focusSpace.testWorkspaceFile` command (replaced by `focusSpace.sendToCopilot`)
+- `focusSpace.testClipboard` command (replaced by `focusSpace.sendToCopilot`)
 
 ## [0.0.9] - 2024-09-23
 

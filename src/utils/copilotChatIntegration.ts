@@ -1,243 +1,122 @@
 import * as vscode from 'vscode';
 import { FocusEntry } from '../models/focusEntry';
-import * as path from 'path';
+import { TreeOperations } from './treeOperations';
+import { buildContext, TokenBudgetResult } from './tokenBudget';
+import { configuration } from './configurationManager';
 
-export class CopilotChatIntegration {
-  private static instance: CopilotChatIntegration;
-  
-  static getInstance(): CopilotChatIntegration {
-    if (!CopilotChatIntegration.instance) {
-      CopilotChatIntegration.instance = new CopilotChatIntegration();
+/**
+ * Send Focus Space entries to Copilot Chat.
+ *
+ * Resolves target entries, builds token-budgeted context, copies formatted
+ * markdown to clipboard, and attempts to open Copilot Chat.
+ *
+ * @param entries - Top-level entries to process (files, sections, or mixed)
+ * @param token - Cancellation token for progress support
+ */
+export async function sendToCopilot(
+    entries: FocusEntry[],
+    token?: vscode.CancellationToken,
+): Promise<void> {
+    // Flatten to file-only entries
+    const fileEntries = TreeOperations.flatten(entries)
+        .filter((e: FocusEntry) => e.type === 'file');
+
+    if (fileEntries.length === 0) {
+        vscode.window.showInformationMessage('No files to send to Copilot Chat.');
+        return;
     }
-    return CopilotChatIntegration.instance;
-  }
 
-  // Method 1: Direct Copilot commands
-  async testCopilotCommands(entries: FocusEntry[], prompt?: string): Promise<boolean> {
-    const fileEntries = entries.filter(e => e.type === 'file');
-    
-    vscode.window.showInformationMessage(
-      `🔄 Testing Direct Commands with ${fileEntries.length} files from ${entries.length} entries`
-    );
+    // Build context with token budget
+    const budget = configuration.copilotTokenBudget;
+    const result: TokenBudgetResult = await buildContext(fileEntries, budget, token);
 
-    const commands = [
-      'github.copilot.sendToChat',
-      'github.copilot.explainThis',
-      'workbench.action.chat.openInSidebar'
-    ];
+    if (token?.isCancellationRequested) {
+        return;
+    }
 
-    let lastError: any;
-    for (const command of commands) {
-      try {
-        const commandArgs = {
-          files: fileEntries.map(e => e.uri),
-          prompt: prompt || `Analyze these ${fileEntries.length} files from Focus Space`,
-          context: 'focus-space',
-          uris: fileEntries.map(e => e.uri)
-        };
-        
-        console.log(`Trying command ${command} with args:`, commandArgs);
-        await vscode.commands.executeCommand(command, commandArgs);
-        
-        vscode.window.showInformationMessage(
-          `✅ SUCCESS: ${command} worked with ${fileEntries.length} files!`
+    if (result.includedFiles.length === 0) {
+        vscode.window.showWarningMessage(
+            'No files could be included. All were binary, missing, or exceeded size limits.'
         );
-        return true;
-      } catch (error) {
-        lastError = error;
-        console.log(`Command ${command} failed:`, error);
-        continue;
-      }
+        return;
     }
-    
-    vscode.window.showErrorMessage(
-      `❌ All Direct Commands failed with ${fileEntries.length} files. Last error: ${lastError}`
-    );
-    return false;
-  }
 
-  // Method 2: Workspace file approach
-  async testWorkspaceFile(entries: FocusEntry[], prompt?: string): Promise<boolean> {
-    const fileEntries = entries.filter(e => e.type === 'file');
-    
-    vscode.window.showInformationMessage(
-      `🔄 Testing Workspace File with ${fileEntries.length} files from ${entries.length} entries`
-    );
+    // Format markdown output
+    const markdown = formatMarkdown(result);
 
+    // Copy to clipboard as fallback
+    await vscode.env.clipboard.writeText(markdown);
+
+    // Attempt to open Copilot Chat with content pre-filled in input
+    let chatOpened = false;
     try {
-      const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
-      if (!workspaceRoot) {
-        throw new Error('No workspace folder available');
-      }
-
-      // Ensure .vscode directory exists
-      const vscodeDir = vscode.Uri.joinPath(workspaceRoot, '.vscode');
-      try {
-        await vscode.workspace.fs.stat(vscodeDir);
-      } catch {
-        await vscode.workspace.fs.createDirectory(vscodeDir);
-      }
-
-      const tempFile = vscode.Uri.joinPath(vscodeDir, 'focus-context.md');
-      const content = await this.prepareFocusContext(fileEntries, prompt);
-      
-      await vscode.workspace.fs.writeFile(tempFile, Buffer.from(content));
-      await vscode.window.showTextDocument(tempFile, { preview: false });
-      
-      // Try to open Copilot Chat
-      try {
-        await vscode.commands.executeCommand('workbench.action.chat.open');
-      } catch {
-        // Fallback: try alternative chat commands
-        await vscode.commands.executeCommand('workbench.action.chat.openInSidebar');
-      }
-      
-      vscode.window.showInformationMessage(
-        `✅ SUCCESS: Created focus-context.md with ${fileEntries.length} files. Check .vscode/ folder!`
-      );
-      return true;
-    } catch (error) {
-      vscode.window.showErrorMessage(`❌ Workspace file approach failed: ${error}`);
-      return false;
-    }
-  }
-
-  // Method 3: Enhanced clipboard approach
-  async testClipboard(entries: FocusEntry[], prompt?: string): Promise<boolean> {
-    const fileEntries = entries.filter(e => e.type === 'file');
-    
-    vscode.window.showInformationMessage(
-      `🔄 Testing Clipboard with ${fileEntries.length} files from ${entries.length} entries`
-    );
-
-    try {
-      const content = await this.prepareFocusContext(fileEntries, prompt);
-      await vscode.env.clipboard.writeText(content);
-      
-      // Try to open Copilot Chat first
-      let chatOpened = false;
-      try {
-        await vscode.commands.executeCommand('workbench.action.chat.open');
-        chatOpened = true;
-      } catch {
-        try {
-          await vscode.commands.executeCommand('workbench.action.chat.openInSidebar');
-          chatOpened = true;
-        } catch {
-          // Chat couldn't be opened
-        }
-      }
-      
-      const message = chatOpened 
-        ? `✅ SUCCESS: ${fileEntries.length} files copied to clipboard and Copilot Chat opened! Paste with Ctrl+V`
-        : `✅ SUCCESS: ${fileEntries.length} files copied to clipboard! Open Copilot Chat and paste (Ctrl+V)`;
-      
-      const action = await vscode.window.showInformationMessage(
-        message,
-        chatOpened ? 'Done' : 'Try Open Chat',
-        'Show Content'
-      );
-      
-      if (action === 'Try Open Chat') {
-        try {
-          await vscode.commands.executeCommand('github.copilot.openChat');
-        } catch {
-          vscode.window.showWarningMessage('Could not open Copilot Chat automatically');
-        }
-      } else if (action === 'Show Content') {
-        // Show content in new document for verification
-        const doc = await vscode.workspace.openTextDocument({
-          content: content,
-          language: 'markdown'
+        await vscode.commands.executeCommand('workbench.action.chat.open', {
+            query: markdown,
+            isPartialQuery: true,
         });
-        await vscode.window.showTextDocument(doc);
-      }
-      
-      return true;
-    } catch (error) {
-      vscode.window.showErrorMessage(`❌ Clipboard approach failed: ${error}`);
-      return false;
-    }
-  }
-
-  private async prepareFocusContext(entries: FocusEntry[], prompt?: string): Promise<string> {
-    const lines: string[] = [];
-    
-    if (prompt) {
-      lines.push(`# ${prompt}\n`);
-    } else {
-      lines.push(`# Focus Space Context (${entries.length} files)\n`);
-    }
-    
-    lines.push(`**Generated at:** ${new Date().toLocaleString()}\n`);
-    lines.push('## Files in Focus Space\n');
-    
-    for (const entry of entries) {
-      const fileName = path.basename(entry.uri.fsPath);
-      const relativePath = vscode.workspace.asRelativePath(entry.uri);
-      
-      lines.push(`### ${entry.label || fileName}`);
-      lines.push(`**Path:** \`${relativePath}\``);
-      lines.push(`**Type:** ${entry.type}\n`);
-      
-      if (entry.type === 'file') {
+        chatOpened = true;
+    } catch {
+        // Copilot Chat may not be available — fall back to clipboard-only
         try {
-          const content = await vscode.workspace.fs.readFile(entry.uri);
-          const text = content.toString();
-          
-          if (text.length > 50000) { // 50KB limit
-            lines.push('```');
-            lines.push(`File too large (${Math.round(text.length / 1024)}KB). Content truncated.`);
-            lines.push(text.substring(0, 5000) + '\n\n... [truncated] ...');
-            lines.push('```\n');
-          } else {
-            const language = this.detectLanguage(entry.uri.fsPath);
-            lines.push('```' + language);
-            lines.push(text);
-            lines.push('```\n');
-          }
-        } catch (error) {
-          lines.push(`*Could not read file content: ${error}*\n`);
+            await vscode.commands.executeCommand('workbench.action.chat.open');
+            chatOpened = true;
+        } catch {
+            // No chat available at all
         }
-      } else if (entry.type === 'section') {
-        lines.push('*Section containing multiple files*\n');
-      } else if (entry.type === 'folder') {
-        lines.push('*Folder entry*\n');
-      }
     }
-    
-    lines.push('\n---\n');
-    lines.push('*Generated by Focus Space extension*');
-    
-    return lines.join('\n');
-  }
 
-  private detectLanguage(filePath: string): string {
-    const ext = path.extname(filePath).toLowerCase().substring(1);
-    const languageMap: { [key: string]: string } = {
-      'ts': 'typescript',
-      'js': 'javascript',
-      'jsx': 'jsx',
-      'tsx': 'tsx',
-      'py': 'python',
-      'java': 'java',
-      'cpp': 'cpp',
-      'c': 'c',
-      'cs': 'csharp',
-      'go': 'go',
-      'rs': 'rust',
-      'php': 'php',
-      'rb': 'ruby',
-      'swift': 'swift',
-      'kt': 'kotlin',
-      'scala': 'scala',
-      'json': 'json',
-      'xml': 'xml',
-      'html': 'html',
-      'css': 'css',
-      'scss': 'scss',
-      'md': 'markdown'
-    };
-    return languageMap[ext] || '';
-  }
+    // Build summary message
+    const parts: string[] = [
+        `${result.includedFiles.length} files sent to Copilot Chat (${result.budgetUsedPercent}% of token budget).`,
+    ];
+    if (result.excludedCount > 0) {
+        parts.push(`${result.excludedCount} excluded (budget/size)`);
+    }
+    if (result.skippedBinary > 0) {
+        parts.push(`${result.skippedBinary} binary skipped`);
+    }
+    if (result.skippedMissing > 0) {
+        parts.push(`${result.skippedMissing} missing skipped`);
+    }
+
+    if (!chatOpened) {
+        parts[0] = `${result.includedFiles.length} files copied to clipboard (${result.budgetUsedPercent}% of token budget).`;
+        vscode.window.showInformationMessage(
+            parts.length > 1 ? `${parts[0]} ${parts.slice(1).join(', ')}.` : `${parts[0]} Paste into Copilot Chat.`
+        );
+    } else {
+        vscode.window.showInformationMessage(
+            parts.length > 1 ? `${parts[0]} ${parts.slice(1).join(', ')}.` : `${parts[0]} Press Enter to send.`
+        );
+    }
+}
+
+/**
+ * Format a TokenBudgetResult into markdown suitable for Copilot Chat.
+ */
+function formatMarkdown(result: TokenBudgetResult): string {
+    const lines: string[] = [];
+
+    lines.push(`# Focus Space Context (${result.includedFiles.length} files)\n`);
+    lines.push(`**Estimated tokens:** ~${result.totalTokensEstimated.toLocaleString()}\n`);
+
+    for (const file of result.includedFiles) {
+        lines.push(`## ${file.relativePath}`);
+        if (file.wasTruncated) {
+            lines.push('*Content truncated to fit budget.*\n');
+        }
+        const lang = file.language || '';
+        lines.push('```' + lang);
+        lines.push(file.content);
+        lines.push('```\n');
+    }
+
+    if (result.excludedCount > 0) {
+        lines.push(`\n> **Note:** ${result.excludedCount} file(s) were excluded due to token budget or size limits.\n`);
+    }
+
+    lines.push('---');
+    lines.push('*Generated by Focus Space extension*');
+
+    return lines.join('\n');
 }

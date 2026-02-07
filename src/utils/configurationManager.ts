@@ -136,6 +136,14 @@ export class ConfigurationManager {
         return this.get<boolean>('autoSaveEnabled', true);
     }
 
+    public get copilotTokenBudget(): number {
+        return this.clampNumber(this.get<number>('copilotTokenBudget', 60000), 1000, 200000);
+    }
+
+    public get renameDetectionWindowMs(): number {
+        return this.clampNumber(this.get<number>('renameDetectionWindowMs', 300), 50, 2000);
+    }
+
     // =============================================================================
     // BUFFER MANAGEMENT SETTINGS  
     // =============================================================================

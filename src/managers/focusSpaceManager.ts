@@ -81,6 +81,14 @@ export class FocusSpaceManager {
     }
 
     /**
+     * Get total count of file-type entries across all sections (flat count)
+     */
+    public getFileCount(): number {
+        return TreeOperations.flatten(this.rootEntries)
+            .filter((e: FocusEntry) => e.type === 'file').length;
+    }
+
+    /**
      * Force immediate save if dirty
      */
     public async saveNow(): Promise<void> {

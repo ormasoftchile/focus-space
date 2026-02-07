@@ -7,7 +7,7 @@ suite('FocusSpace Persistence Tests', () => {
     let manager: FocusSpaceManager;
     let mockContext: vscode.ExtensionContext;
 
-    const createMockContext = (): vscode.ExtensionContext => {
+    const createMockContext = () => {
         return {
             subscriptions: [],
             workspaceState: {
@@ -32,7 +32,7 @@ suite('FocusSpace Persistence Tests', () => {
             secrets: undefined as any,
             environmentVariableCollection: undefined as any,
             extension: undefined as any,
-        };
+        } as unknown as vscode.ExtensionContext;
     };
 
     setup(() => {
