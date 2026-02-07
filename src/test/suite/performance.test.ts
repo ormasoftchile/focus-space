@@ -8,7 +8,7 @@ suite('Performance Optimization Tests', () => {
     let context: vscode.ExtensionContext;
 
     // Mock extension context
-    const createMockContext = (): vscode.ExtensionContext => {
+    const createMockContext = () => {
         return {
             subscriptions: [],
             workspaceState: {
@@ -35,7 +35,7 @@ suite('Performance Optimization Tests', () => {
             extension: {} as any,
             secrets: {} as any,
             extensionMode: vscode.ExtensionMode.Test,
-        };
+        } as unknown as vscode.ExtensionContext;
     };
 
     suiteSetup(() => {

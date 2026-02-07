@@ -9,7 +9,9 @@ import { FileSystemWatcher } from './utils/fileSystemWatcher';
 import { configuration } from './utils/configurationManager';
 import { FocusEntry } from './models/focusEntry';
 import { TreeOperations } from './utils/treeOperations';
-import { CopilotChatIntegration } from './utils/copilotChatIntegration';
+import { StatusBarIndicator } from './utils/statusBarIndicator';
+import { sendToCopilot } from './utils/copilotChatIntegration';
+import { getGitChanges } from './utils/gitChangesImporter';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Focus Space extension is now active!');
@@ -551,105 +553,193 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     // Helper function to get entries based on context
-    async function getSelectedEntries(treeItem?: vscode.TreeItem): Promise<FocusEntry[]> {
-        if (treeItem?.contextValue) {
-            // Single item selected
-            const entry = manager.getEntry(treeItem.contextValue);
-            if (entry) {
-                if (entry.type === 'section') {
-                    // Include all files in section
-                    const allFiles = TreeOperations.flatten([entry])
-                        .filter((e: FocusEntry) => e.type === 'file');
-                    return allFiles;
+    async function getSelectedEntries(treeItem?: any): Promise<FocusEntry[]> {
+        if (treeItem) {
+            // Resolve entry ID from tree item — entryId is set by the tree data provider,
+            // id is the TreeItem.id (also the entry UUID). contextValue is the type string.
+            const entryId = treeItem.entryId || treeItem.id;
+            if (entryId) {
+                const entry = manager.getEntry(entryId);
+                if (entry) {
+                    if (entry.type === 'section') {
+                        // Include all files in section
+                        const allFiles = TreeOperations.flatten([entry])
+                            .filter((e: FocusEntry) => e.type === 'file');
+                        return allFiles;
+                    }
+                    return [entry];
                 }
-                return [entry];
             }
         }
         
-        // All Focus Space files
+        // No specific item — return all Focus Space files
         const allEntries = manager.getTopLevelEntries();
         return TreeOperations.flatten(allEntries)
             .filter((entry: FocusEntry) => entry.type === 'file');
     }
 
-    // Initialize Copilot integration
-    const copilotIntegration = CopilotChatIntegration.getInstance();
+    // US2: Add All Open Editors command
+    const addAllOpenEditorsCommand = vscode.commands.registerCommand('focusSpace.addAllOpenEditors', async () => {
+        try {
+            // Collect unique file URIs from all tab groups
+            const seenUris = new Set<string>();
+            const fileUris: vscode.Uri[] = [];
 
-    // Test Command 1: Direct Commands
-    const testCopilotCommandsCommand = vscode.commands.registerCommand(
-        'focusSpace.testCopilotCommands',
-        async (treeItem?: vscode.TreeItem) => {
-            try {
-                const entries = await getSelectedEntries(treeItem);
-                if (entries.length === 0) {
-                    vscode.window.showWarningMessage('No files to send - Focus Space is empty or no files in selection');
-                    return;
+            for (const group of vscode.window.tabGroups.all) {
+                for (const tab of group.tabs) {
+                    if (tab.input instanceof vscode.TabInputText) {
+                        const uri = tab.input.uri;
+                        if (uri.scheme === 'file' && !seenUris.has(uri.toString())) {
+                            seenUris.add(uri.toString());
+                            fileUris.push(uri);
+                        }
+                    }
                 }
-                
-                // Show what we're about to process
-                const fileNames = entries.map(e => path.basename(e.uri.fsPath)).join(', ');
-                console.log('Testing Copilot Commands with entries:', entries);
-                vscode.window.showInformationMessage(
-                    `🚀 Starting Direct Commands test with: ${fileNames}`
-                );
-                
-                const success = await copilotIntegration.testCopilotCommands(entries);
-                console.log('Copilot commands test completed:', success);
-            } catch (error) {
-                vscode.window.showErrorMessage(`Copilot commands test error: ${error}`);
             }
-        }
-    );
 
-    // Test Command 2: Workspace File
-    const testWorkspaceFileCommand = vscode.commands.registerCommand(
-        'focusSpace.testWorkspaceFile',
-        async (treeItem?: vscode.TreeItem) => {
-            try {
-                const entries = await getSelectedEntries(treeItem);
-                if (entries.length === 0) {
-                    vscode.window.showWarningMessage('No files to send - Focus Space is empty or no files in selection');
-                    return;
-                }
-                
-                const fileNames = entries.map(e => path.basename(e.uri.fsPath)).join(', ');
-                console.log('Testing Workspace File with entries:', entries);
-                vscode.window.showInformationMessage(
-                    `📝 Starting Workspace File test with: ${fileNames}`
-                );
-                
-                const success = await copilotIntegration.testWorkspaceFile(entries);
-                console.log('Workspace file test completed:', success);
-            } catch (error) {
-                vscode.window.showErrorMessage(`Workspace file test error: ${error}`);
+            if (fileUris.length === 0) {
+                vscode.window.showInformationMessage('No open editor files found.');
+                return;
             }
-        }
-    );
 
-    // Test Command 3: Clipboard
-    const testClipboardCommand = vscode.commands.registerCommand(
-        'focusSpace.testClipboard',
-        async (treeItem?: vscode.TreeItem) => {
-            try {
-                const entries = await getSelectedEntries(treeItem);
-                if (entries.length === 0) {
-                    vscode.window.showWarningMessage('No files to send - Focus Space is empty or no files in selection');
-                    return;
+            let addedCount = 0;
+            let alreadyPresentCount = 0;
+            let excludedCount = 0;
+
+            for (const uri of fileUris) {
+                if (manager.hasEntry(uri)) {
+                    alreadyPresentCount++;
+                    continue;
                 }
-                
-                const fileNames = entries.map(e => path.basename(e.uri.fsPath)).join(', ');
-                console.log('Testing Clipboard with entries:', entries);
-                vscode.window.showInformationMessage(
-                    `📋 Starting Clipboard test with: ${fileNames}`
-                );
-                
-                const success = await copilotIntegration.testClipboard(entries);
-                console.log('Clipboard test completed:', success);
-            } catch (error) {
-                vscode.window.showErrorMessage(`Clipboard test error: ${error}`);
+                if (configuration.isExcluded(uri.fsPath)) {
+                    excludedCount++;
+                    continue;
+                }
+                await manager.addEntry(uri, 'file');
+                addedCount++;
             }
+
+            // Build summary message
+            if (addedCount === 0 && alreadyPresentCount > 0 && excludedCount === 0) {
+                vscode.window.showInformationMessage(
+                    `All ${alreadyPresentCount} open editors are already in Focus Space.`
+                );
+            } else if (addedCount > 0) {
+                const parts = [`Added ${addedCount} files to Focus Space.`];
+                if (alreadyPresentCount > 0) {
+                    parts.push(`${alreadyPresentCount} already present`);
+                }
+                if (excludedCount > 0) {
+                    parts.push(`${excludedCount} excluded`);
+                }
+                vscode.window.showInformationMessage(
+                    parts.length > 1 ? `${parts[0]} ${parts.slice(1).join(', ')}.` : parts[0]
+                );
+            } else {
+                // addedCount === 0, no already present — all excluded
+                vscode.window.showInformationMessage(
+                    `No files added. ${excludedCount} excluded by patterns.`
+                );
+            }
+        } catch (error) {
+            vscode.window.showErrorMessage(`Error adding open editors: ${error}`);
         }
-    );
+    });
+
+    // US4: Add from Git Changes command
+    const addFromGitChangesCommand = vscode.commands.registerCommand('focusSpace.addFromGitChanges', async () => {
+        try {
+            const gitResult = await getGitChanges();
+
+            if (gitResult.gitUnavailable) {
+                vscode.window.showInformationMessage('Git extension not available or no Git repository found in this workspace.');
+                return;
+            }
+
+            if (gitResult.noChanges) {
+                vscode.window.showInformationMessage('No changed files found in the current Git repository.');
+                return;
+            }
+
+            let addedCount = 0;
+            let alreadyPresentCount = 0;
+            let excludedCount = 0;
+
+            for (const uri of gitResult.changedUris) {
+                if (manager.hasEntry(uri)) {
+                    alreadyPresentCount++;
+                    continue;
+                }
+                if (configuration.isExcluded(uri.fsPath)) {
+                    excludedCount++;
+                    continue;
+                }
+                await manager.addEntry(uri, 'file');
+                addedCount++;
+            }
+
+            // Build summary message
+            if (addedCount === 0 && alreadyPresentCount > 0 && excludedCount === 0) {
+                vscode.window.showInformationMessage(
+                    `All ${alreadyPresentCount} changed files are already in Focus Space.`
+                );
+            } else if (addedCount > 0) {
+                const parts = [`Added ${addedCount} files from Git changes.`];
+                if (alreadyPresentCount > 0) {
+                    parts.push(`${alreadyPresentCount} already present`);
+                }
+                if (excludedCount > 0) {
+                    parts.push(`${excludedCount} excluded`);
+                }
+                vscode.window.showInformationMessage(
+                    parts.length > 1 ? `${parts[0]} ${parts.slice(1).join(', ')}.` : parts[0]
+                );
+            } else {
+                vscode.window.showInformationMessage(
+                    `No files added. ${excludedCount > 0 ? `${excludedCount} excluded by patterns.` : 'All already present.'}`
+                );
+            }
+        } catch (error) {
+            vscode.window.showErrorMessage(`Error adding Git changes: ${error}`);
+        }
+    });
+
+    // US3: Send to Copilot command
+    const sendToCopilotCommand = vscode.commands.registerCommand('focusSpace.sendToCopilot', async (treeItem?: any) => {
+        try {
+            const entries = await getSelectedEntries(treeItem);
+            if (entries.length === 0) {
+                vscode.window.showInformationMessage('No files in Focus Space to send to Copilot.');
+                return;
+            }
+
+            await vscode.window.withProgress(
+                {
+                    location: vscode.ProgressLocation.Notification,
+                    title: 'Preparing Focus Space context for Copilot...',
+                    cancellable: true,
+                },
+                async (_progress, token) => {
+                    await sendToCopilot(entries, token);
+                }
+            );
+        } catch (error) {
+            vscode.window.showErrorMessage(`Error sending to Copilot: ${error}`);
+        }
+    });
+
+    // US1: Status Bar Indicator
+    const statusBarIndicator = new StatusBarIndicator();
+    statusBarIndicator.update(manager.getFileCount());
+
+    const statusBarChangeListener = manager.onDidChange(() => {
+        statusBarIndicator.update(manager.getFileCount());
+    });
+
+    // US1: Reveal View command (status bar click)
+    const revealViewCommand = vscode.commands.registerCommand('focusSpace.revealView', () => {
+        vscode.commands.executeCommand('focusSpace.focus');
+    });
 
     context.subscriptions.push(
         treeView, 
@@ -668,11 +758,13 @@ export function activate(context: vscode.ExtensionContext) {
         revealInExplorerCommand,
         convertFolderToSectionCommand,
         closeNonFocusBuffersCommand,
+        addAllOpenEditorsCommand,
+        sendToCopilotCommand,
+        addFromGitChangesCommand,
         fileSystemWatcher,
-        // Copilot integration test commands
-        testCopilotCommandsCommand,
-        testWorkspaceFileCommand,
-        testClipboardCommand
+        statusBarIndicator,
+        statusBarChangeListener,
+        revealViewCommand
     );
 }
 

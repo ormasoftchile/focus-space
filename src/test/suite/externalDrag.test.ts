@@ -42,7 +42,7 @@ suite('External Drag & Drop Test Suite', () => {
 			extensionMode: vscode.ExtensionMode.Test,
 			secrets: {} as any,
 			extension: {} as any,
-		} as vscode.ExtensionContext;
+		} as unknown as vscode.ExtensionContext;
 
 		// Create manager instance
 		mockManager = FocusSpaceManager.getInstance(mockContext);

@@ -83,19 +83,23 @@
         "title": "Close Non-Focus"
       },
       {
-        "command": "focusSpace.testCopilotCommands",
-        "title": "Focus Space: Test Direct Commands",
-        "icon": "$(rocket)"
+        "command": "focusSpace.addAllOpenEditors",
+        "title": "Focus Space: Add All Open Editors",
+        "icon": "$(files)"
       },
       {
-        "command": "focusSpace.testWorkspaceFile",
-        "title": "Focus Space: Test Workspace File",
-        "icon": "$(file-text)"
+        "command": "focusSpace.sendToCopilot",
+        "title": "Focus Space: Send to Copilot Chat",
+        "icon": "$(comment-discussion)"
       },
       {
-        "command": "focusSpace.testClipboard",
-        "title": "Focus Space: Test Clipboard",
-        "icon": "$(clippy)"
+        "command": "focusSpace.addFromGitChanges",
+        "title": "Focus Space: Add from Git Changes",
+        "icon": "$(git-compare)"
+      },
+      {
+        "command": "focusSpace.revealView",
+        "title": "Focus Space: Show Panel"
       }
     ],
     "views": {
@@ -146,19 +150,9 @@
           "group": "navigation"
         },
         {
-          "command": "focusSpace.testCopilotCommands",
+          "command": "focusSpace.sendToCopilot",
           "when": "view == focusSpace",
-          "group": "2_copilot"
-        },
-        {
-          "command": "focusSpace.testWorkspaceFile",
-          "when": "view == focusSpace",
-          "group": "2_copilot"
-        },
-        {
-          "command": "focusSpace.testClipboard",
-          "when": "view == focusSpace",
-          "group": "2_copilot"
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -178,18 +172,8 @@
           "group": "navigation"
         },
         {
-          "command": "focusSpace.testCopilotCommands",
-          "when": "view == focusSpace && viewItem == section",
-          "group": "copilot"
-        },
-        {
-          "command": "focusSpace.testWorkspaceFile",
-          "when": "view == focusSpace && viewItem == section",
-          "group": "copilot"
-        },
-        {
-          "command": "focusSpace.testClipboard",
-          "when": "view == focusSpace && viewItem == section",
+          "command": "focusSpace.sendToCopilot",
+          "when": "view == focusSpace",
           "group": "copilot"
         }
       ]
@@ -379,6 +363,20 @@
           ],
           "default": "currentGroup",
           "description": "Scope for closing non-focus editors. 'currentGroup': only current editor group; 'allGroups': all editor groups"
+        },
+        "focusSpace.copilotTokenBudget": {
+          "type": "number",
+          "default": 60000,
+          "minimum": 1000,
+          "maximum": 200000,
+          "description": "Maximum estimated token count for Copilot context export. Files are included until this budget is reached."
+        },
+        "focusSpace.renameDetectionWindowMs": {
+          "type": "number",
+          "default": 300,
+          "minimum": 50,
+          "maximum": 2000,
+          "description": "Time window (milliseconds) to detect folder renames from correlated file system create/delete events."
         }
       }
     }

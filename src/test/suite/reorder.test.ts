@@ -35,8 +35,8 @@ suite('Reorder Operations Test Suite', () => {
             asAbsolutePath: (relativePath: string) => `/test/path/${relativePath}`,
             storagePath: '/test/storage',
             globalStoragePath: '/test/global',
-            logPath: '/test/log'
-        };
+            logPath: '/test/log',
+        } as unknown as vscode.ExtensionContext;
     });
 
     setup(async () => {
